@@ -7,24 +7,27 @@ const store = useCounterStore()
 </script>
 
 <template>
-      <button @click="store.increment()">{{ store.count }}</button>
   <header>
-    <img alt="Vue logo" class="logo" src="@/assets/logo.svg" width="125" height="125" />
-
-    <div class="wrapper">
-      <HelloWorld msg="You did it!" />
-
-      <nav>
-        <RouterLink to="/">Home</RouterLink>
-        <RouterLink to="/about">About</RouterLink>
-      </nav>
-    </div>
+    <h1>Simple.css Demo</h1>
+    <nav>
+      <RouterLink to="/">Home</RouterLink>
+      <RouterLink to="/about">About</RouterLink>
+      <button @click="store.increment()">{{ store.count }}</button>
+    </nav>
   </header>
 
-  <RouterView />
+  <main>
+    <RouterView />
+  </main>
+
+  <footer>
+    <p>Simple.css was created by <a href="https://kevquirk.com">Kev Quirk</a> and is licensed under the MIT license.<br>
+      <a href="https://github.com/kevquirk/simple.css-site">Source code for this site</a>
+    </p>
+  </footer>
 </template>
 
-<style scoped>
+<!-- <style scoped>
 header {
   line-height: 1.5;
   max-height: 100vh;
@@ -86,4 +89,4 @@ nav a:first-of-type {
     margin-top: 1rem;
   }
 }
-</style>
+</style> -->

@@ -1,0 +1,5 @@
+@import './simple.css';
+
+a, button {
+  transition: 0.2s;
+}
