@@ -1,6 +1,7 @@
 import 'material-icons/iconfont/filled.css';
 import './assets/custom-simple.css'
 // import './assets/custom-water.css'
+// import './assets/custom-pico.css'
 
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'

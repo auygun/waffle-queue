@@ -6,8 +6,14 @@ import { RouterLink, RouterView } from 'vue-router'
   <header>
     <h1><span class="material-icons">factory</span>Builder</h1>
     <nav>
-      <RouterLink to="/">Home</RouterLink>
-      <RouterLink to="/about">About</RouterLink>
+      <ul>
+        <li>
+          <RouterLink to="/">Home</RouterLink>
+        </li>
+        <li>
+          <RouterLink to="/about">About</RouterLink>
+        </li>
+      </ul>
     </nav>
   </header>
 
