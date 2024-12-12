@@ -24,6 +24,6 @@ import { RouterLink, RouterView } from 'vue-router'
 
 <style scoped>
 h1>span {
-  font-size: 28px;
+  font-size: 60%;
 }
 </style>
