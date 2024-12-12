@@ -1,15 +1,32 @@
 <script setup lang="ts">
+import { type AxiosResponse } from 'axios'
 import { useAxios } from '@/client/axios'
-import { ref, watchEffect } from 'vue'
+import { ref, watchEffect, onMounted } from 'vue'
 
 const branches = ['main', 'minor']
 
 const currentBranch = ref(branches[0])
 const commits = ref([])
 
-watchEffect(async () => {
-  const response = await useAxios().get(`/repos/vuejs/core/commits?per_page=3&sha=${currentBranch.value}`)
-  commits.value = response.data
+let dialogElement: HTMLDialogElement | undefined = undefined
+const dialogMessage = ref("")
+
+async function fetchCommits(
+  sha
+): Promise<AxiosResponse> {
+  return useAxios().get(`/repos/vuejs/core/commits?per_page=3&sha=${currentBranch.value}`)
+}
+
+watchEffect(() => {
+  fetchCommits(currentBranch.value).then(
+    (response) => {
+      commits.value = response.data
+    },
+    (error) => {
+      dialogMessage.value = error
+      dialogElement.showModal()
+    },
+  )
 })
 
 function truncate(v) {
@@ -20,6 +37,10 @@ function truncate(v) {
 function formatDate(v) {
   return v.replace(/T|Z/g, ' ')
 }
+
+onMounted(() => {
+  dialogElement = document.querySelector("dialog") as HTMLInputElement
+})
 </script>
 
 <template>
@@ -39,4 +60,9 @@ function formatDate(v) {
       at <span>{{ formatDate(commit.author.date) }}</span>
     </li>
   </ul>
+
+  <dialog>
+    <p>{{ dialogMessage }}</p>
+    <button autofocus @click="dialogElement?.close()">Close</button>
+  </dialog>
 </template>
