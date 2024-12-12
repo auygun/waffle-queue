@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useAxios } from '@/main'
+import { useAxios } from '@/client/axios'
 import { ref, watchEffect } from 'vue'
 
 const branches = ['main', 'minor']
