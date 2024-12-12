@@ -1,20 +1,20 @@
 @import './water.css';
 
-body > footer {
+body>footer {
   text-align: right
 }
 
-header > nav {
+header>nav {
   text-align: left;
   margin-left: -1rem;
 }
 
-header >nav a.router-link-exact-active:hover {
+header>nav a.router-link-exact-active:hover {
   background-color: transparent;
 }
 
-header > nav a,
-header > nav a:visited {
+header>nav a,
+header>nav a:visited {
   display: inline-block;
   padding: 0 1rem;
   border-left: 1px solid var(--border);
@@ -25,7 +25,7 @@ header > nav a:visited {
 }
 
 @media (hover: hover) {
-  header > nav a:hover {
+  header>nav a:hover {
     text-decoration: none;
     background-color: hsla(160, 100%, 37%, 0.2);
   }
@@ -34,4 +34,3 @@ header > nav a:visited {
 nav a:first-of-type {
   border: 0;
 }
-
