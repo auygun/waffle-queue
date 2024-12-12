@@ -1,3 +1,4 @@
 <template>
-  <h1>This is an about page</h1>
+  <h1>About builder</h1>
+  <p>My awesome builder</p>
 </template>
