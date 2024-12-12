@@ -12,6 +12,15 @@ export default defineConfig({
     vueJsx(),
     vueDevTools(),
   ],
+  server: {
+    proxy: {
+      "/repos/vuejs/core": {
+        target: "https://api.github.com",
+        changeOrigin: true,
+        secure: false,
+      }
+    }
+  },
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url))

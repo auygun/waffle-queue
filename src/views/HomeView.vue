@@ -1,15 +1,15 @@
 <script setup lang="ts">
+import { useAxios } from '@/main'
 import { ref, watchEffect } from 'vue'
 
-const API_URL = `https://api.github.com/repos/vuejs/core/commits?per_page=3&sha=`
 const branches = ['main', 'minor']
 
 const currentBranch = ref(branches[0])
 const commits = ref([])
 
 watchEffect(async () => {
-  const url = `${API_URL}${currentBranch.value}`
-  commits.value = await (await fetch(url)).json()
+  const response = await useAxios().get(`/repos/vuejs/core/commits?per_page=3&sha=${currentBranch.value}`)
+  commits.value = response.data
 })
 
 function truncate(v) {
