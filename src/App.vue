@@ -4,7 +4,7 @@ import { RouterLink, RouterView } from 'vue-router'
 
 <template>
   <header>
-    <h1>Builder</h1>
+    <h1><span class="material-icons">factory</span>Builder</h1>
     <nav>
       <RouterLink to="/">Home</RouterLink>
       <RouterLink to="/about">About</RouterLink>
@@ -21,3 +21,9 @@ import { RouterLink, RouterView } from 'vue-router'
     </p>
   </footer>
 </template>
+
+<style scoped>
+h1>span {
+  font-size: 28px;
+}
+</style>

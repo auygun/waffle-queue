@@ -1,3 +1,4 @@
+import 'material-icons/iconfont/filled.css';
 import './assets/custom-simple.css'
 // import './assets/custom-water.css'
 
