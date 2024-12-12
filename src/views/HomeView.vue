@@ -12,7 +12,7 @@ let dialogElement: HTMLDialogElement | undefined = undefined
 const dialogMessage = ref("")
 
 async function fetchCommits(
-  sha
+  sha: string,
 ): Promise<AxiosResponse> {
   return useAxios().get(`/repos/vuejs/core/commits?per_page=3&sha=${currentBranch.value}`)
 }
