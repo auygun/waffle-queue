@@ -1,15 +1,16 @@
 <script setup lang="ts">
 import { type AxiosResponse } from 'axios'
 import { useAxios } from '@/client/axios'
-import { ref, watchEffect, onMounted } from 'vue'
+import { ref, watchEffect, useTemplateRef } from 'vue'
+import Modal from '@/components/Modal.vue'
 
 const branches = ['main', 'minor']
 
 const currentBranch = ref(branches[0])
 const commits = ref([])
 
-let dialogElement: HTMLDialogElement | undefined = undefined
-const dialogMessage = ref("")
+const modal = useTemplateRef('modal')
+const showModal = (msg: string) => modal.value.showModal(msg)
 
 async function fetchCommits(
   sha: string,
@@ -23,8 +24,7 @@ watchEffect(() => {
       commits.value = response.data
     },
     (error) => {
-      dialogMessage.value = error
-      dialogElement.showModal()
+      showModal(error);
     },
   )
 })
@@ -37,10 +37,6 @@ function truncate(v) {
 function formatDate(v) {
   return v.replace(/T|Z/g, ' ')
 }
-
-onMounted(() => {
-  dialogElement = document.querySelector("dialog") as HTMLInputElement
-})
 </script>
 
 <template>
@@ -55,14 +51,11 @@ onMounted(() => {
       <a :href="html_url" target="_blank">{{ sha.slice(0, 7) }}</a>
       - <span>{{ truncate(commit.message) }}</span><br>
       by <span>
-        <a :href="author.html_url" target="_blank">{{ commit.author.name }}</a>
+        <a :href="author?.html_url" target="_blank">{{ commit.author?.name }}</a>
       </span>
-      at <span>{{ formatDate(commit.author.date) }}</span>
+      at <span>{{ formatDate(commit.author?.date) }}</span>
     </li>
   </ul>
 
-  <dialog>
-    <p>{{ dialogMessage }}</p>
-    <button autofocus @click="dialogElement?.close()">Close</button>
-  </dialog>
+  <Modal ref="modal"/>
 </template>
