@@ -14,7 +14,7 @@ export default defineConfig({
   ],
   server: {
     proxy: {
-      "/repos/vuejs/core": {
+      "/repos": {
         target: "https://api.github.com",
         changeOrigin: true,
         secure: false,
