@@ -1,13 +1,14 @@
 <script setup lang="ts">
 import { type AxiosResponse } from 'axios'
 import { useAxios } from '@/client/axios'
-import { ref, watchEffect, useTemplateRef } from 'vue'
+import { ref, watchEffect, useTemplateRef, onMounted } from 'vue'
 import Modal from '@/components/Modal.vue'
 
 const branches = ['main', 'minor']
 
 const currentBranch = ref(branches[0])
 const commits = ref([])
+let books = ref([])
 
 const modal = useTemplateRef('modal')
 const showModal = (msg: string) => modal.value.showModal(msg)
@@ -16,6 +17,21 @@ async function fetchCommits(
   sha: string,
 ): Promise<AxiosResponse> {
   return useAxios().get(`/repos/vuejs/core/commits?per_page=3&sha=${currentBranch.value}`)
+}
+
+async function fetchBooks(): Promise<AxiosResponse> {
+  return useAxios().get(`http://localhost:5001/books`)
+}
+
+function getBooks() {
+  fetchBooks().then(
+    (response) => {
+      books.value = response.data.books
+    },
+    (error) => {
+      showModal(error);
+    },
+  )
 }
 
 watchEffect(() => {
@@ -27,6 +43,10 @@ watchEffect(() => {
       showModal(error);
     },
   )
+})
+
+onMounted(() => {
+  getBooks();
 })
 
 function truncate(v) {
@@ -57,20 +77,13 @@ function formatDate(v) {
       </tr>
     </thead>
     <tbody>
-      <tr>
-        <td>Harry Potter and the Philosopher's Stone</td>
-        <td>J. K. Rowling</td>
-        <td><span>No</span></td>
+      <tr v-for="(book, index) in books" :key="index">
+        <td>{{ book.title }}</td>
+        <td>{{ book.author }}</td>
         <td>
-          <div>
-            <button>Update</button>&nbsp<button>Delete</button>
-          </div>
+          <span v-if="book.read">Yes</span>
+          <span v-else>No</span>
         </td>
-      </tr>
-      <tr>
-        <td>On the Road</td>
-        <td>Jack Kerouac</td>
-        <td><span>Yes</span></td>
         <td>
           <div>
             <button>Update</button>&nbsp<button>Delete</button>
@@ -96,8 +109,8 @@ function formatDate(v) {
 
 <style scoped>
 td:last-child {
-    width: 1%;
-    white-space: nowrap;
+  width: 1%;
+  white-space: nowrap;
 }
 
 td>div>button {

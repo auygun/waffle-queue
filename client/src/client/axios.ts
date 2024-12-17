@@ -71,7 +71,7 @@ function createAxiosInstance(): AxiosCacheInstance {
     if (!config.headers.getContentType()) {
       config.headers.setContentType('application/json')
     }
-    config.withCredentials = true
+    config.withCredentials = false
 
     if (axiosInstance.defaults.auth) {
       config.auth = axiosInstance.defaults.auth
