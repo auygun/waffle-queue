@@ -46,6 +46,40 @@ function formatDate(v) {
     <label :for="branch">{{ branch }}</label>
   </template>
   <p>vuejs/core@{{ currentBranch }}</p>
+
+  <table width="100%">
+    <thead>
+      <tr>
+        <th>Title</th>
+        <th>Author</th>
+        <th>Read?</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Harry Potter and the Philosopher's Stone</td>
+        <td>J. K. Rowling</td>
+        <td><span>No</span></td>
+        <td>
+          <div>
+            <button>Update</button>&nbsp<button>Delete</button>
+          </div>
+        </td>
+      </tr>
+      <tr>
+        <td>On the Road</td>
+        <td>Jack Kerouac</td>
+        <td><span>Yes</span></td>
+        <td>
+          <div>
+            <button>Update</button>&nbsp<button>Delete</button>
+          </div>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
   <ul v-if="commits.length > 0">
     <li v-for="{ html_url, sha, author, commit } in commits" :key="sha">
       <a :href="html_url" target="_blank">{{ sha.slice(0, 7) }}</a>
@@ -57,5 +91,16 @@ function formatDate(v) {
     </li>
   </ul>
 
-  <Modal ref="modal"/>
+  <Modal ref="modal" />
 </template>
+
+<style scoped>
+td:last-child {
+    width: 1%;
+    white-space: nowrap;
+}
+
+td>div>button {
+  padding: 0;
+}
+</style>
