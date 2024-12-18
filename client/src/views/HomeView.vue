@@ -20,7 +20,7 @@ async function fetchCommits(
 }
 
 async function fetchBooks(): Promise<AxiosResponse> {
-  return useAxios().get(`http://localhost:5001/builds`)
+  return useAxios().get(`http://localhost:5001/api/v1/builds`)
 }
 
 function getBooks() {
