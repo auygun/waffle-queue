@@ -20,7 +20,7 @@ async function fetchCommits(
 }
 
 async function fetchBooks(): Promise<AxiosResponse> {
-  return useAxios().get(`http://localhost:5001/books`)
+  return useAxios().get(`http://localhost:5001/builds`)
 }
 
 function getBooks() {
@@ -110,6 +110,7 @@ function formatDate(v) {
 <style scoped>
 td:last-child {
   width: 1%;
+  font-size: 0.9rem;
   white-space: nowrap;
 }
 

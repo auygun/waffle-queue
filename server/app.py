@@ -1,6 +1,7 @@
 import uuid
+import sqlite3
 
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, g
 from flask_cors import CORS
 
 
@@ -33,6 +34,44 @@ app.config.from_object(__name__)
 CORS(app, resources={r'/*': {'origins': '*'}})
 
 
+def make_dicts(cursor, row):
+    return dict((cursor.description[idx][0], value)
+                for idx, value in enumerate(row))
+
+
+def get_db():
+    db = getattr(g, '_database', None)
+    if db is None:
+        try:
+            db = g._database = sqlite3.connect(
+                "file:builder.db?mode=rw", uri=True)
+        except sqlite3.OperationalError:
+            print("Creating database")
+            db = g._database = sqlite3.connect(
+                "file:builder.db?mode=rwc", uri=True)
+            cur = db.execute("CREATE TABLE builds(id, title, author, read)")
+            cur.executemany(
+                "INSERT INTO builds VALUES(:id, :title, :author, :read)", BOOKS)
+            cur.close()
+    db.row_factory = make_dicts
+    return db
+
+
+def query_db(query, args=(), one=False):
+    cur = get_db().execute(query, args)
+    rv = cur.fetchall()
+    cur.close()
+    return (rv[0] if rv else None) if one else rv
+
+
+@app.teardown_appcontext
+def close_connection(exception):
+    db = getattr(g, '_database', None)
+    if db is not None:
+        db.commit()
+        db.close()
+
+
 def remove_book(book_id):
     for book in BOOKS:
         if book['id'] == book_id:
@@ -45,6 +84,13 @@ def remove_book(book_id):
 @app.route('/ping', methods=['GET'])
 def ping_pong():
     return jsonify('pong!')
+
+
+@app.route('/builds', methods=['GET'])
+def get_builds():
+    response_object = {'status': 'success'}
+    response_object['books'] = query_db('select * from builds')
+    return jsonify(response_object)
 
 
 @app.route('/books', methods=['GET', 'POST'])
