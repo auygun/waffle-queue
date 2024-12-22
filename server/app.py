@@ -3,6 +3,7 @@ from flask import Flask
 from flask_cors import CORS
 import db
 import rest
+import worker
 
 
 def create_app():
@@ -14,6 +15,8 @@ def create_app():
     CORS(app, resources={r'/*': {'origins': '*'}})
 
     db.init_app(app)
+
+    worker.start()
 
     return app
 
