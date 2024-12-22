@@ -3,14 +3,10 @@ import click
 from flask import g
 from datetime import datetime
 
-sqlite3.register_converter(
-    "timestamp", lambda v: datetime.fromisoformat(v.decode())
-)
-
-
-def make_dicts(cursor, row):
-    return dict((cursor.description[idx][0], value)
-                for idx, value in enumerate(row))
+_schema_script = '''
+DROP TABLE IF EXISTS builds;
+CREATE TABLE builds(id primary key, title, author, read);
+'''
 
 
 def init_app(app):
@@ -22,17 +18,17 @@ def init_app(app):
 def init_db():
     db = get_db()
     with db:
-        db.executescript("""
-            DROP TABLE IF EXISTS builds;
-            CREATE TABLE builds(id, title, author, read)
-            """)
+        db.executescript(_schema_script)
 
 
 def get_db():
     if 'db' not in g:
         g.db = sqlite3.connect("file:builder.db?mode=rwc",
                                uri=True, detect_types=sqlite3.PARSE_DECLTYPES)
-        g.db.row_factory = make_dicts
+        g.db.row_factory = lambda cursor, row: dict(
+            (cursor.description[idx][0], value) for idx, value in enumerate(row))
+        sqlite3.register_converter(
+            "timestamp", lambda v: datetime.fromisoformat(v.decode()))
     return g.db
 
 
@@ -44,10 +40,10 @@ def close_db(e=None):
 
 
 def query_db(query, args=(), one=False):
-    cur = get_db().execute(query, args)
-    rv = cur.fetchall()
-    cur.close()
-    return (rv[0] if rv else None) if one else rv
+    cursor = get_db().execute(query, args)
+    rows = cursor.fetchall()
+    cursor.close()
+    return (rows[0] if rows else None) if one else rows
 
 
 @click.command('init-db')
