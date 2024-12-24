@@ -38,7 +38,7 @@ class ShutdownHandler:
 async def _main(q):
     shutdown = ShutdownHandler()
     try:
-        await db_async.inti_db()
+        await db_async.open_db()
     except sqlite3.OperationalError:
         print("Worker process cannot open the db")
         sys.exit()

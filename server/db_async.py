@@ -5,7 +5,8 @@ from datetime import datetime
 _db = None
 
 
-async def inti_db():
+async def open_db():
+    print("db_async: Opening db")
     global _db
     _db = await aiosqlite.connect("file:builder.db?mode=rw", uri=True)
     _db.row_factory = lambda cursor, row: dict(
@@ -16,6 +17,7 @@ async def inti_db():
 
 async def close_db():
     if _db is not None:
+        print("db_async:Closing db")
         await _db.commit()
         await _db.close()
 

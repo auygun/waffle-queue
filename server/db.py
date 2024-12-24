@@ -23,6 +23,7 @@ def init_db():
 
 def get_db():
     if 'db' not in g:
+        print("db: Opening db")
         g.db = sqlite3.connect("file:builder.db?mode=rwc",
                                uri=True, detect_types=sqlite3.PARSE_DECLTYPES)
         g.db.row_factory = lambda cursor, row: dict(
@@ -35,6 +36,7 @@ def get_db():
 def close_db(e=None):
     db = g.pop('db', None)
     if db is not None:
+        print("db: Closing db")
         db.commit()
         db.close()
 
