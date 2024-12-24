@@ -1,10 +1,13 @@
 import multiprocessing as mp
 import asyncio
+import sqlite3
+import sys
 import db_async
+import signal
 
-# class Worker:
-#     def __init__(self):
-#         self.aaa = 0
+
+_proc = None
+_queue = None
 
 
 async def builds():
@@ -18,17 +21,54 @@ async def count():
     print("Two")
 
 
-async def main():
-    await db_async.inti_db()
+class ShutdownHandler:
+    def __init__(self):
+        self.shutdown = False
+        signal.signal(signal.SIGINT, self.signal_caught)
+        signal.signal(signal.SIGTERM, self.signal_caught)
+
+    def signal_caught(self, *args):
+        self.shutdown_gracefully("Signal caught")
+
+    def shutdown_gracefully(self, reason):
+        print(f"{reason}, will shutdown gracefully soon...", file=sys.stderr)
+        self.shutdown = True
+
+
+async def _main(q):
+    shutdown = ShutdownHandler()
+    try:
+        await db_async.inti_db()
+    except sqlite3.OperationalError:
+        print("Worker process cannot open the db")
+        sys.exit()
+
     await asyncio.gather(count(), builds(), builds(), builds())
+
+    while not shutdown.shutdown:
+        await asyncio.sleep(0.1)
+
+    await db_async.close_db()
 
 
 def _run(q):
-    asyncio.run(main())
+    print("Worker process running.")
+    asyncio.run(_main(q))
+    print("Worker process stopped.")
 
 
 def start():
-    mp.set_start_method('fork')
-    q = mp.Queue()
-    p = mp.Process(target=_run, args=(q,))
-    p.start()
+    global _proc
+    global _queue
+    if _proc is None:
+        mp.set_start_method('fork')
+        _queue = mp.Queue()
+        _proc = mp.Process(target=_run, args=(_queue,))
+        _proc.start()
+
+
+def stop():
+    if _proc is not None:
+        _queue.close()
+        _proc.terminate()
+        _proc.join()

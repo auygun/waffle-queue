@@ -14,6 +14,12 @@ async def inti_db():
         "timestamp", lambda v: datetime.fromisoformat(v.decode()))
 
 
+async def close_db():
+    if _db is not None:
+        await _db.commit()
+        await _db.close()
+
+
 def get_db():
     return _db
 
