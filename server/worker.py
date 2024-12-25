@@ -21,8 +21,9 @@ class Worker:
         pass
 
     async def update(self, fire_and_forget):
-        builds = await db_async.query_db('select * from builds')
-        print(builds)
+        # builds = await db_async.query_db('select * from builds')
+        # print(builds)
+        pass
 
 
 class ShutdownHandler:

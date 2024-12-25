@@ -11,9 +11,24 @@ def ping_pong():
 
 @bp.route('/builds', methods=['GET'])
 def get_builds():
-    response_object = {'status': 'success'}
-    response_object['books'] = db.query_db('select * from builds')
-    return jsonify(response_object)
+    response = {'status': 'success'}
+    # response['builds'] = db.query_db('select * from builds')
+    response['builds'] = db.query_db('select * from builds')
+    return jsonify(response)
+
+
+@bp.route("/request/integrate", methods=["POST"])
+def integrate():
+    response = {}
+    branch = request.form.get("branch", "")
+    if branch == "":
+        response['status'] = 'failure'
+        response['message'] = 'No branch name was specified'
+    else:
+        db.get_db().execute(
+            "INSERT INTO builds VALUES(NULL, ?, ?)", [branch, 'requested'])
+        response['status'] = 'success'
+    return jsonify(response)
 
 
 # @bp.route('/books', methods=['GET', 'POST'])

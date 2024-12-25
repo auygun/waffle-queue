@@ -7,7 +7,7 @@ import worker
 
 _schema_script = '''
 DROP TABLE IF EXISTS builds;
-CREATE TABLE builds(id primary key, title, author, read);
+CREATE TABLE builds(id INTEGER PRIMARY KEY, branch, status);
 '''
 
 
@@ -67,28 +67,22 @@ def init_test_db_command():
         init_db()
         db = get_db()
         with db:
-            BOOKS = [
+            BUILDS = [
                 {
-                    'id': 1,
-                    'title': 'On the Road',
-                    'author': 'Jack Kerouac',
-                    'read': True
+                    'branch': 'my-task-branch1',
+                    'status': 'requested'
                 },
                 {
-                    'id': 2,
-                    'title': 'Harry Potter and the Philosopher\'s Stone',
-                    'author': 'J. K. Rowling',
-                    'read': False
+                    'branch': 'another-task-branch',
+                    'status': 'building'
                 },
                 {
-                    'id': 3,
-                    'title': 'Green Eggs and Ham',
-                    'author': 'Dr. Seuss',
-                    'read': True
+                    'branch': 'my-task-branch2',
+                    'status': 'done'
                 }
             ]
             db.executemany(
-                "INSERT INTO builds VALUES(:id, :title, :author, :read)", BOOKS)
+                "INSERT INTO builds VALUES(NULL, :branch, :status)", BUILDS)
         click.echo('Initialized the database with test data.')
     except sqlite3.OperationalError as e:
         print(e)

@@ -8,7 +8,7 @@ const branches = ['main', 'minor']
 
 const currentBranch = ref(branches[0])
 const commits = ref([])
-let books = ref([])
+let builds = ref([])
 
 const modal = useTemplateRef('modal')
 const showModal = (msg: string) => modal.value.showModal(msg)
@@ -19,14 +19,14 @@ async function fetchCommits(
   return useAxios().get(`/repos/vuejs/core/commits?per_page=3&sha=${currentBranch.value}`)
 }
 
-async function fetchBooks(): Promise<AxiosResponse> {
+async function fetchBuilds(): Promise<AxiosResponse> {
   return useAxios().get(`http://localhost:5001/api/v1/builds`)
 }
 
-function getBooks() {
-  fetchBooks().then(
+function getBuilds() {
+  fetchBuilds().then(
     (response) => {
-      books.value = response.data.books
+      builds.value = response.data.builds
     },
     (error) => {
       showModal(error);
@@ -46,7 +46,7 @@ watchEffect(() => {
 })
 
 onMounted(() => {
-  getBooks();
+  getBuilds();
 })
 
 function truncate(v) {
@@ -70,20 +70,17 @@ function formatDate(v) {
   <table width="100%">
     <thead>
       <tr>
-        <th>Title</th>
-        <th>Author</th>
-        <th>Read?</th>
+        <th>ID</th>
+        <th>Branch</th>
+        <th>Status</th>
         <th></th>
       </tr>
     </thead>
     <tbody>
-      <tr v-for="(book, index) in books" :key="index">
-        <td>{{ book.title }}</td>
-        <td>{{ book.author }}</td>
-        <td>
-          <span v-if="book.read">Yes</span>
-          <span v-else>No</span>
-        </td>
+      <tr v-for="(build, index) in builds" :key="index">
+        <td>{{ build.id }}</td>
+        <td>{{ build.branch }}</td>
+        <td>{{ build.status }}</td>
         <td>
           <div>
             <button>Update</button>&nbsp<button>Delete</button>
