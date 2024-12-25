@@ -43,10 +43,14 @@ async def _main(q):
         print("Worker process cannot open the db")
         sys.exit()
 
-    await asyncio.gather(count(), builds(), builds(), builds())
+    async with asyncio.TaskGroup() as group:
+        group.create_task(count())
+        group.create_task(builds())
+        group.create_task(builds())
+        group.create_task(builds())
 
-    while not shutdown.shutdown:
-        await asyncio.sleep(0.1)
+        while not shutdown.shutdown:
+            await asyncio.sleep(0.1)
 
     await db_async.close_db()
 
