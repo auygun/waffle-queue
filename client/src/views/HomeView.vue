@@ -14,7 +14,7 @@ const showModal = (msg: string) => modal.value.showModal(msg)
 
 async function fetchCommits(sha: string) {
   try {
-    const response = await useAxios().get(`/repos/vuejs/core/commits?per_page=3&sha=${sha}`)
+    const response = await useAxios().get('/repos/vuejs/core/commits', { per_page: 3, sha: sha })
     commits.value = response.data
   } catch (error) {
     showModal(error)
@@ -23,7 +23,7 @@ async function fetchCommits(sha: string) {
 
 async function getBuilds() {
   try {
-    const response = await useAxios().get(`http://localhost:5001/api/v1/builds`)
+    const response = await useAxios().get('http://localhost:5001/api/v1/builds')
     builds.value = response.data.builds
   } catch (error) {
     showModal(error)
