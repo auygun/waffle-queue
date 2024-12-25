@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { type AxiosResponse } from 'axios'
 import { useAxios } from '@/client/axios'
 import { ref, watchEffect, useTemplateRef, onMounted } from 'vue'
 import Modal from '@/components/Modal.vue'
@@ -13,40 +12,30 @@ let builds = ref([])
 const modal = useTemplateRef('modal')
 const showModal = (msg: string) => modal.value.showModal(msg)
 
-async function fetchCommits(
-  sha: string,
-): Promise<AxiosResponse> {
-  return useAxios().get(`/repos/vuejs/core/commits?per_page=3&sha=${currentBranch.value}`)
+async function fetchCommits(sha: string) {
+  try {
+    const response = await useAxios().get(`/repos/vuejs/core/commits?per_page=3&sha=${sha}`)
+    commits.value = response.data
+  } catch (error) {
+    showModal(error)
+  }
 }
 
-async function fetchBuilds(): Promise<AxiosResponse> {
-  return useAxios().get(`http://localhost:5001/api/v1/builds`)
+async function getBuilds() {
+  try {
+    const response = await useAxios().get(`http://localhost:5001/api/v1/builds`)
+    builds.value = response.data.builds
+  } catch (error) {
+    showModal(error)
+  }
 }
 
-function getBuilds() {
-  fetchBuilds().then(
-    (response) => {
-      builds.value = response.data.builds
-    },
-    (error) => {
-      showModal(error);
-    },
-  )
-}
-
-watchEffect(() => {
-  fetchCommits(currentBranch.value).then(
-    (response) => {
-      commits.value = response.data
-    },
-    (error) => {
-      showModal(error);
-    },
-  )
+watchEffect(async () => {
+  await fetchCommits(currentBranch.value)
 })
 
-onMounted(() => {
-  getBuilds();
+onMounted(async () => {
+  await getBuilds()
 })
 
 function truncate(v) {
