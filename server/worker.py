@@ -10,15 +10,19 @@ _proc = None
 _queue = None
 
 
-async def builds():
-    builds = await db_async.query_db('select * from builds')
-    print(builds)
+class Worker:
+    def __init__(self, q):
+        self._q = q
 
+    async def initialize(self):
+        pass
 
-async def count():
-    print("One")
-    await asyncio.sleep(1)
-    print("Two")
+    async def shutdown(self):
+        pass
+
+    async def update(self, fire_and_forget):
+        builds = await db_async.query_db('select * from builds')
+        print(builds)
 
 
 class ShutdownHandler:
@@ -31,28 +35,39 @@ class ShutdownHandler:
         self.shutdown_gracefully("Signal caught")
 
     def shutdown_gracefully(self, reason):
-        print(f"{reason}, will shutdown gracefully soon...", file=sys.stderr)
+        print(f"{reason}, shuting down gracefully.", file=sys.stderr)
         self.shutdown = True
 
 
 async def _main(q):
     shutdown = ShutdownHandler()
-    try:
-        await db_async.open_db()
-    except sqlite3.OperationalError:
-        print("Worker process cannot open the db")
-        sys.exit()
+    worker = Worker(q)
 
-    async with asyncio.TaskGroup() as group:
-        group.create_task(count())
-        group.create_task(builds())
-        group.create_task(builds())
-        group.create_task(builds())
-
+    async with asyncio.TaskGroup() as fire_and_forget:
         while not shutdown.shutdown:
-            await asyncio.sleep(0.1)
+            try:
+                await db_async.open_db()
+            except sqlite3.OperationalError:
+                await asyncio.sleep(1)
+                continue
+            await worker.initialize()
+            print("Worker initialized.")
 
-    await db_async.close_db()
+            while not shutdown.shutdown:
+                try:
+                    await worker.update(fire_and_forget)
+                except sqlite3.OperationalError as e:
+                    print(f'db error: {e.sqlite_errorname}')
+                    break
+                await asyncio.sleep(1)
+
+            await worker.shutdown()
+            try:
+                await db_async.close_db()
+            except sqlite3.OperationalError as e:
+                if shutdown.shutdown:
+                    print(e)
+            print("Worker shutdown.")
 
 
 def _run(q):

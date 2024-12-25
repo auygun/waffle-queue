@@ -16,10 +16,12 @@ async def open_db():
 
 
 async def close_db():
+    global _db
     if _db is not None:
         print("db_async:Closing db")
         await _db.commit()
         await _db.close()
+        _db = None
 
 
 def get_db():

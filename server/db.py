@@ -1,7 +1,9 @@
 import sqlite3
 import click
 from flask import g
-from datetime import datetime
+import datetime
+
+import worker
 
 _schema_script = '''
 DROP TABLE IF EXISTS builds;
@@ -51,35 +53,43 @@ def query_db(query, args=(), one=False):
 @click.command('init-db')
 def init_db_command():
     """Clear the existing data and create new tables."""
-    init_db()
-    click.echo('Initialized the database.')
+    try:
+        init_db()
+        click.echo('Initialized the database.')
+    except sqlite3.OperationalError as e:
+        print(e)
+    worker.stop()
 
 
 @click.command('init-test-db')
 def init_test_db_command():
-    init_db()
-    db = get_db()
-    with db:
-        BOOKS = [
-            {
-                'id': 1,
-                'title': 'On the Road',
-                'author': 'Jack Kerouac',
-                'read': True
-            },
-            {
-                'id': 2,
-                'title': 'Harry Potter and the Philosopher\'s Stone',
-                'author': 'J. K. Rowling',
-                'read': False
-            },
-            {
-                'id': 3,
-                'title': 'Green Eggs and Ham',
-                'author': 'Dr. Seuss',
-                'read': True
-            }
-        ]
-        db.executemany(
-            "INSERT INTO builds VALUES(:id, :title, :author, :read)", BOOKS)
-    click.echo('Initialized the database with test data.')
+    try:
+        init_db()
+        db = get_db()
+        with db:
+            BOOKS = [
+                {
+                    'id': 1,
+                    'title': 'On the Road',
+                    'author': 'Jack Kerouac',
+                    'read': True
+                },
+                {
+                    'id': 2,
+                    'title': 'Harry Potter and the Philosopher\'s Stone',
+                    'author': 'J. K. Rowling',
+                    'read': False
+                },
+                {
+                    'id': 3,
+                    'title': 'Green Eggs and Ham',
+                    'author': 'Dr. Seuss',
+                    'read': True
+                }
+            ]
+            db.executemany(
+                "INSERT INTO builds VALUES(:id, :title, :author, :read)", BOOKS)
+        click.echo('Initialized the database with test data.')
+    except sqlite3.OperationalError as e:
+        print(e)
+    worker.stop()
