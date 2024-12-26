@@ -17,7 +17,7 @@ def get_builds():
     return jsonify(response)
 
 
-@bp.route("/request/integrate", methods=["POST"])
+@bp.route("/integrate", methods=["POST"])
 def integrate():
     response = {}
     branch = request.form.get("branch", "")
@@ -25,6 +25,7 @@ def integrate():
         response['status'] = 'failure'
         response['message'] = 'No branch name was specified'
     else:
+        print(f'branch: {branch}')
         db.get_db().execute(
             "INSERT INTO builds VALUES(NULL, ?, ?)", [branch, 'requested'])
         response['status'] = 'success'

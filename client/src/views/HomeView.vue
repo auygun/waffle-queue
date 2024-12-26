@@ -14,6 +14,11 @@ const showModal = (msg: string) => modal.value.showModal(msg)
 
 async function fetchCommits(sha: string) {
   try {
+    const formData = new FormData()
+    formData.append('branch', 'test-branch')
+    await useAxios().postFormData('http://localhost:5001/api/v1/integrate', formData)
+    await getBuilds()
+
     const response = await useAxios().get('/repos/vuejs/core/commits', { per_page: 3, sha: sha })
     commits.value = response.data
   } catch (error) {
