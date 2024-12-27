@@ -36,16 +36,18 @@ class Build(Entity):
 
     @staticmethod
     async def get_builds(state, count=1):
-        async with db.cursor() as cur:
-            await cur.execute('SELECT id FROM builds WHERE state=%s ORDER BY id LIMIT %s', (state, count))
-            rows = await cur.fetchall()
-            return [Build(r[0]) for r in rows]
+        async with db.conn() as conn:
+            async with conn.cursor() as cur:
+                await cur.execute('SELECT id FROM builds WHERE state=%s ORDER BY id LIMIT %s', (state, count))
+                rows = await cur.fetchall()
+                return [Build(r[0]) for r in rows]
 
     async def _fetch(self, field):
-        async with db.cursor() as cur:
-            await cur.execute(f'SELECT {field} FROM builds WHERE id=%s', (self.id()))
-            r = await cur.fetchone()
-            return r[0] if r is not None else None
+        async with db.conn() as conn:
+            async with conn.cursor() as cur:
+                await cur.execute(f'SELECT {field} FROM builds WHERE id=%s', (self.id()))
+                r = await cur.fetchone()
+                return r[0] if r is not None else None
 
 
 class Task:

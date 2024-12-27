@@ -18,39 +18,36 @@ INSERT INTO builder.builds (branch, state) VALUES ("master7", 2);
 INSERT INTO builder.builds (branch, state) VALUES ("stable8", 3);
 '''
 
-_conn = None
+_pool = None
 
 
 async def open_db():
     print("Opening db")
-    global _conn
-    _conn = await aiomysql.connect(host='127.0.0.1', port=3306,
-                                   user='mysql', password='mysql',
-                                   db='builder', autocommit=False)
+    global _pool
+    _pool = await aiomysql.create_pool(host='127.0.0.1', port=3306,
+                                       user='mysql', password='mysql',
+                                       db='builder', autocommit=False)
+    # async with _pool.acquire() as conn:
+    #     async with conn.cursor() as cursor:
+    #         await cursor.execute(_create_db)
+    #     await conn.commit()
 
 
 async def close_db():
-    global _conn
-    if _conn is not None:
+    global _pool
+    if _pool is not None:
         print("Closing db")
-        await _conn.commit()
-        _conn.close()
-        _conn = None
+        _pool.close()
+        await _pool.wait_closed()
+        _pool = None
 
 
-def commit():
-    return _conn.commit()
-
-
-def cursor():
-    return _conn.cursor()
-
-
-def rollback():
-    return _conn.rollback()
+def conn():
+    return _pool.acquire()
 
 
 async def now():
-    async with _conn.cursor() as cur:
-        await cur.execute("SELECT NOW()")
-        return await cur.next()[0]
+    async with _pool.acquire() as conn:
+        async with conn.cursor() as cur:
+            await cur.execute("SELECT NOW()")
+            return await cur.next()[0]
