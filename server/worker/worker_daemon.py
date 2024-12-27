@@ -13,46 +13,39 @@ _queue = None
 
 class Entity:
     def __init__(self, id):
-        self.id = id
-        self._valid = False
+        self._id = id
 
     def __eq__(self, other):
-        return isinstance(other, Entity) and self.id == other.id
+        return isinstance(other, Entity) and self._id == other._id
 
     def __hash__(self):
         return hash(self._id)
 
-    @classmethod
-    async def create(cls, id, refresh = True):
-        self = cls(id)
-        if refresh:
-            await self.refresh()
-        return self
-
-    def is_valid(self):
-        return self._valid
+    def id(self):
+        return self._id
 
 
 class Build(Entity):
+    async def branch(self):
+        return await self._fetch('branch')
+
+    async def state(self):
+        return await self._fetch('state')
+
     @staticmethod
-    async def fetch(state, count=1, refresh=True):
+    async def fetch_many(state, count=1):
         async with db.conn() as conn:
             async with conn.cursor() as cur:
                 await cur.execute('SELECT id FROM builds WHERE state=%s ORDER BY id LIMIT %s', (state, count))
                 rows = await cur.fetchall()
-                return [await Build.create(r[0], refresh) for r in rows]
+                return [Build(r[0]) for r in rows]
 
-    async def refresh(self):
+    async def _fetch(self, field):
         async with db.conn() as conn:
             async with conn.cursor() as cur:
-                await cur.execute('SELECT * FROM builds WHERE id=%s', self.id)
-                if (cur.rowcount > 0):
-                    r = await cur.fetchone()
-                    self.branch = r[1]
-                    self.state = r[2]
-                    self._valid = True
-                else:
-                    self._valid = False
+                await cur.execute(f'SELECT {field} FROM builds WHERE id=%s', (self.id()))
+                r = await cur.fetchone()
+                return r[0] if r is not None else None
 
 
 class Worker:
@@ -65,15 +58,11 @@ class Worker:
 
     async def update(self, group):
         for i in range(1, 10):
-            b = await Build.create(i)
-            if b.is_valid():
-                print([b.id, b.branch, b.state])
-            else:
-                print(f'No build found with id {b.id}')
+            b = Build(i)
+            print([b.id(), await b.branch(), await b.state()])
 
         if self._current_build is not None:
-            await self._current_build.refresh()
-            if self._current_build.state == 5:
+            if await self._current_build.state() == 5:
                 self._current_build_task.cancel()
                 try:
                     await self._current_build_task
@@ -83,7 +72,7 @@ class Worker:
                     self._current_build_task = None
 
         if self._current_build is None:
-            builds = await Build.fetch(1)
+            builds = await Build.fetch_many(1)
             if not builds:
                 print("No build found in the queue")
             else:
@@ -92,7 +81,7 @@ class Worker:
 
     async def _start_build(self, build):
         self._current_build = build
-        print(f'Building: {build.id}, {build.branch}, {build.state}')
+        print(f'Building: {build.id()}, {await build.branch()}, {await build.state()}')
 
 
 class ShutdownHandler:
