@@ -1,4 +1,3 @@
-import multiprocessing as mp
 import asyncio
 import sys
 
@@ -26,6 +25,9 @@ class Entity:
 
 
 class Build(Entity):
+    # This needs to match with the db enum
+    State = {'REQUESTED': 1, 'BUILDING': 2, 'SUCCEEDED': 3, 'FAILED': 4, 'ABORTED': 5}
+
     async def branch(self):
         return await self._fetch('branch')
 
@@ -33,7 +35,7 @@ class Build(Entity):
         return await self._fetch('state')
 
     @staticmethod
-    async def fetch_many(state, count=1):
+    async def get_builds(state, count=1):
         async with db.cursor() as cur:
             await cur.execute('SELECT id FROM builds WHERE state=%s ORDER BY id LIMIT %s', (state, count))
             rows = await cur.fetchall()
@@ -60,7 +62,7 @@ class Worker:
             print([b.id(), await b.branch(), await b.state()])
 
         if self._current_build is not None:
-            if await self._current_build.state() == 5:
+            if await self._current_build.state() == Build.State['ABORTED']:
                 self._current_build_task.cancel()
                 try:
                     await self._current_build_task
@@ -70,7 +72,7 @@ class Worker:
                     self._current_build_task = None
 
         if self._current_build is None:
-            builds = await Build.fetch_many(1)
+            builds = await Build.get_builds(Build.State['REQUESTED'])
             if not builds:
                 print("No build found in the queue")
             else:
