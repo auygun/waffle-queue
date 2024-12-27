@@ -1,3 +1,4 @@
+import multiprocessing as mp
 import asyncio
 import sqlite3
 import sys
@@ -20,7 +21,7 @@ class Worker:
         pass
 
     async def update(self, fire_and_forget):
-        # builds = await db_async.query_db('select * from builds')
+        # builds = await db.query_db('select * from builds')
         # print(builds)
         pass
 
@@ -38,63 +39,43 @@ class ShutdownHandler:
         print(f"{reason}, shuting down gracefully.", file=sys.stderr)
         self.shutdown = True
 
-shutdown = ShutdownHandler()
-worker = Worker()
-
-async def check_finished():
-    await asyncio.sleep(2)
-    # raise Exception("finished!!!!!!!")
-    print("check_finished")
-    return True
 
 async def _main():
-    async with asyncio.TaskGroup() as fire_and_forget:
-        t = fire_and_forget.create_task(check_finished())
-        # await t;
-        # print(t.result())
+    shutdown = ShutdownHandler()
+    worker = Worker()
 
+    async with asyncio.TaskGroup() as fire_and_forget:
         while not shutdown.shutdown:
-            # try:
-            #     await db.open_db()
-            # except sqlite3.OperationalError:
-            #     await asyncio.sleep(1)
-            #     continue
+            try:
+                await db.open_db()
+            except sqlite3.OperationalError:
+                await asyncio.sleep(1)
+                continue
             await worker.initialize()
             print("Worker initialized.")
 
             while not shutdown.shutdown:
                 try:
-                    print(t.result())
                     await worker.update(fire_and_forget)
                 except sqlite3.OperationalError as e:
                     print(f'db error: {e.sqlite_errorname}')
                     break
-                except asyncio.InvalidStateError as e:
-                    print(e)
                 await asyncio.sleep(1)
 
-
-async def _shutdown():
             await worker.shutdown()
-            # await db.close_db()
+            try:
+                await db.close_db()
+            except sqlite3.OperationalError as e:
+                if shutdown.shutdown:
+                    print(e)
             print("Worker shutdown.")
 
 
 def _run():
     print("Worker process running.")
-    auto_restart = True
-    while auto_restart:
-        auto_restart = False
-        try:
-            asyncio.run(_main())
-        except ExceptionGroup as e:
-            if not shutdown.shutdown:
-                auto_restart = True
-            print("Exception caught")
-            print(e.exceptions[0])
-        finally:
-            asyncio.run(_shutdown())
+    asyncio.run(_main())
     print("Worker process stopped.")
+
 
 
 if __name__ == "__main__":
