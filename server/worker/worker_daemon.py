@@ -111,7 +111,9 @@ class Worker:
                 await self._current_build_task.cancel()
 
         if self._current_build is None:
-            builds = await Build.get_builds(Build.State['REQUESTED'], count=1000)
+            builds = await Build.get_builds(Build.State['BUILDING'], count=1000)
+            if not builds:
+                builds = await Build.get_builds(Build.State['REQUESTED'], count=1000)
             if not builds:
                 print("No build found in the queue")
             else:
