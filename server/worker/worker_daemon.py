@@ -34,6 +34,9 @@ class Build(Entity):
     async def state(self):
         return await self._fetch('state')
 
+    async def set_state(self, value):
+        return await self._update('state', value)
+
     @staticmethod
     async def get_builds(state, count=1):
         async with db.conn() as conn:
@@ -48,6 +51,11 @@ class Build(Entity):
                 await cur.execute(f'SELECT {field} FROM builds WHERE id=%s', (self.id()))
                 r = await cur.fetchone()
                 return r[0] if r is not None else None
+
+    async def _update(self, field, value):
+        async with db.conn() as conn:
+            async with conn.cursor() as cur:
+                await cur.execute(f'UPDATE builds SET {field}=%s WHERE id=%s', (value, self.id()))
 
 
 class Task:
@@ -98,39 +106,37 @@ class Worker:
         pass
 
     async def update(self):
-        print("async def update(self):")
-        for i in range(1, 10):
-            b = Build(i)
-            print([b.id(), await b.branch(), await b.state()])
-
-        if self._current_build_task.running():
-            print(await self._current_build.state())
-            if await self._current_build.state() == 'REQUESTED':
+        if self._current_build is not None and self._current_build_task.running():
+            if await self._current_build.state() == 'ABORTED':
                 await self._current_build_task.cancel()
 
         if self._current_build is None:
-            print("if self._current_build is None:")
-            builds = await Build.get_builds(Build.State['REQUESTED'])
+            builds = await Build.get_builds(Build.State['REQUESTED'], count=1000)
             if not builds:
                 print("No build found in the queue")
             else:
-                print("self._current_build_task.start(builds[0])")
+                for b in builds:
+                    print([b.id(), await b.branch(), await b.state()])
                 self._current_build_task.start(builds[0])
 
     async def _start_build(self, *args):
         self._current_build = args[0][0]
+        await self._current_build.set_state(Build.State['BUILDING'])
         print(f'Building: {self._current_build.id()}, {await self._current_build.branch()}, {await self._current_build.state()}')
-        while True:
-            await asyncio.sleep(1)
+        await asyncio.sleep(1)
+        return 1
 
     async def _on_build_finished(self, *args):
         result = args[0][0]
         if result == 'CANCELED':
             print(f"_on_build_finished: canceled")
+            await self._current_build.set_state(Build.State['ABORTED'])
         elif result == 0:
             print(f"_on_build_finished: succeeded")
+            await self._current_build.set_state(Build.State['SUCCEEDED'])
         else:
             print(f"_on_build_finished: failed")
+            await self._current_build.set_state(Build.State['FAILED'])
         await self._reset_current_build()
 
     async def _reset_current_build(self):

@@ -9,13 +9,13 @@ CREATE TABLE IF NOT EXISTS builder.builds (
     branch TEXT NOT NULL,
     state ENUM ('REQUESTED', 'BUILDING', 'SUCCEEDED', 'FAILED', 'ABORTED') NOT NULL);
 INSERT INTO builder.builds (branch, state) VALUES ("master1", 1);
-INSERT INTO builder.builds (branch, state) VALUES ("stable2", 2);
-INSERT INTO builder.builds (branch, state) VALUES ("master3", 3);
-INSERT INTO builder.builds (branch, state) VALUES ("stable4", 4);
-INSERT INTO builder.builds (branch, state) VALUES ("master5", 5);
+INSERT INTO builder.builds (branch, state) VALUES ("stable2", 1);
+INSERT INTO builder.builds (branch, state) VALUES ("master3", 1);
+INSERT INTO builder.builds (branch, state) VALUES ("stable4", 1);
+INSERT INTO builder.builds (branch, state) VALUES ("master5", 1);
 INSERT INTO builder.builds (branch, state) VALUES ("stable6", 1);
-INSERT INTO builder.builds (branch, state) VALUES ("master7", 2);
-INSERT INTO builder.builds (branch, state) VALUES ("stable8", 3);
+INSERT INTO builder.builds (branch, state) VALUES ("master7", 1);
+INSERT INTO builder.builds (branch, state) VALUES ("stable8", 1);
 '''
 
 _pool = None
@@ -26,11 +26,10 @@ async def open_db():
     global _pool
     _pool = await aiomysql.create_pool(host='127.0.0.1', port=3306,
                                        user='mysql', password='mysql',
-                                       db='builder', autocommit=False)
-    # async with _pool.acquire() as conn:
-    #     async with conn.cursor() as cursor:
-    #         await cursor.execute(_create_db)
-    #     await conn.commit()
+                                       db='builder', autocommit=True)
+    async with _pool.acquire() as conn:
+        async with conn.cursor() as cursor:
+            await cursor.execute(_create_db)
 
 
 async def close_db():
