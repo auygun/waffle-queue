@@ -1,6 +1,5 @@
 import asyncio
 import sys
-
 from pymysql.err import OperationalError
 import db
 import signal
@@ -49,22 +48,52 @@ class Build(Entity):
             return r[0] if r is not None else None
 
 
+class Task:
+    def __init__(self, task_group, coro_func, on_success_cb, on_fail_cb):
+        self._task_group = task_group
+        self._coro_func = coro_func
+        self._task = None
+        self._on_success_cb = on_success_cb
+        self._on_fail_cb = on_fail_cb
+
+    def start(self, arg):
+        if not self._task:
+            self._task = self._task_group.create_task(self._coro_func(arg))
+            self._task.add_done_callback(self._done)
+
+    async def cancel(self):
+        if self._task:
+            task = self._task
+            self._task = None
+            task.cancel()
+            try:
+                await task
+            except asyncio.CancelledError:
+                pass
+
+    def _done(self, task):
+        self._task = None
+        try:
+            result = task.result()
+            if result != 0:
+                self._on_fail_cb(result)
+            else:
+                self._on_success_cb()
+        except asyncio.CancelledError as e:
+            self._on_fail_cb('CANCELED')
+
+
 class Worker:
-    def __init__(self):
+    def __init__(self, task_group):
         self._current_build = None
-        self._current_build_task = None
+        self._current_build_task = Task(
+            task_group, self._start_build, self._on_build_succeeded, self._on_build_failed)
 
     async def shutdown(self):
-        print("canceling!!!!!!!!!!!!!!!!!!!!!")
-        self._current_build_task.cancel()
-        await self._current_build_task
+        await self._current_build_task.cancel()
         pass
 
-    def build_task_done_cb(self, task):
-        print("build_task_done_cb!!!!!!!!!!!!!!!!!1")
-        self._reset_current_build()
-
-    async def update(self, group):
+    async def update(self):
         for i in range(1, 10):
             b = Build(i)
             print([b.id(), await b.branch(), await b.state()])
@@ -72,31 +101,31 @@ class Worker:
         if self._current_build is not None:
             print(await self._current_build.state())
             if await self._current_build.state() == 'REQUESTED':
-                print("canceling!!!!!!!!!!!!!!!!!!!!!")
-                self._current_build_task.cancel()
-                await self._current_build_task
+                await self._current_build_task.cancel()
 
         if self._current_build is None:
             builds = await Build.get_builds(Build.State['REQUESTED'])
             if not builds:
                 print("No build found in the queue")
             else:
-                self._current_build_task = group.create_task(
-                    self._start_build(builds[0]))
-                self._current_build_task.add_done_callback(
-                    self.build_task_done_cb)
+                self._current_build_task.start(builds[0])
 
     async def _start_build(self, build):
-        try:
-            self._current_build = build
-            print(f'Building: {build.id()}, {await build.branch()}, {await build.state()}')
-            while True:
-                await asyncio.sleep(1)
-        except asyncio.CancelledError:
-            print("_current_build_task is cancelled now")
+        self._current_build = build
+        print(f'Building: {build.id()}, {await build.branch()}, {await build.state()}')
+        while True:
+            await asyncio.sleep(1)
+
+    def _on_build_succeeded(self):
+        print("_on_build_succeeded()")
+        self._reset_current_build()
+
+    def _on_build_failed(self, result):
+        print(f"_on_build_failed({result})")
+        self._reset_current_build()
 
     def _reset_current_build(self):
-        print("_reset_current_build is cancelled now")
+        print("_reset_current_build()")
         self._current_build = None
 
 
@@ -116,9 +145,10 @@ class ShutdownHandler:
 
 async def _main():
     shutdown = ShutdownHandler()
-    worker = Worker()
 
     async with asyncio.TaskGroup() as group:
+        worker = Worker(group)
+
         while not shutdown.shutdown:
             try:
                 await db.open_db()
@@ -128,7 +158,7 @@ async def _main():
 
             while not shutdown.shutdown:
                 try:
-                    await worker.update(group)
+                    await worker.update()
                 except OperationalError as e:
                     print(f'db error: {e.args}')
                     break
