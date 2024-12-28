@@ -26,7 +26,8 @@ class Entity:
 
 class Build(Entity):
     # This needs to match with the db enum
-    State = {'REQUESTED': 1, 'BUILDING': 2, 'SUCCEEDED': 3, 'FAILED': 4, 'ABORTED': 5}
+    State = {'REQUESTED': 1, 'BUILDING': 2,
+             'SUCCEEDED': 3, 'FAILED': 4, 'ABORTED': 5}
 
     async def branch(self):
         return await self._fetch('branch')
@@ -54,7 +55,14 @@ class Worker:
         self._current_build_task = None
 
     async def shutdown(self):
+        print("canceling!!!!!!!!!!!!!!!!!!!!!")
+        self._current_build_task.cancel()
+        await self._current_build_task
         pass
+
+    def build_task_done_cb(self, task):
+        print("build_task_done_cb!!!!!!!!!!!!!!!!!1")
+        self._reset_current_build()
 
     async def update(self, group):
         for i in range(1, 10):
@@ -62,14 +70,11 @@ class Worker:
             print([b.id(), await b.branch(), await b.state()])
 
         if self._current_build is not None:
-            if await self._current_build.state() == Build.State['ABORTED']:
+            print(await self._current_build.state())
+            if await self._current_build.state() == 'REQUESTED':
+                print("canceling!!!!!!!!!!!!!!!!!!!!!")
                 self._current_build_task.cancel()
-                try:
-                    await self._current_build_task
-                except asyncio.CancelledError:
-                    print("_current_build_task is cancelled now")
-                    self._current_build = None
-                    self._current_build_task = None
+                await self._current_build_task
 
         if self._current_build is None:
             builds = await Build.get_builds(Build.State['REQUESTED'])
@@ -78,10 +83,21 @@ class Worker:
             else:
                 self._current_build_task = group.create_task(
                     self._start_build(builds[0]))
+                self._current_build_task.add_done_callback(
+                    self.build_task_done_cb)
 
     async def _start_build(self, build):
-        self._current_build = build
-        print(f'Building: {build.id()}, {await build.branch()}, {await build.state()}')
+        try:
+            self._current_build = build
+            print(f'Building: {build.id()}, {await build.branch()}, {await build.state()}')
+            while True:
+                await asyncio.sleep(1)
+        except asyncio.CancelledError:
+            print("_current_build_task is cancelled now")
+
+    def _reset_current_build(self):
+        print("_reset_current_build is cancelled now")
+        self._current_build = None
 
 
 class ShutdownHandler:
