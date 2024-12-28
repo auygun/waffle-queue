@@ -49,11 +49,12 @@ class Build(Entity):
 
 
 class Task:
-    def __init__(self, task_group, coro_func, done_cb=None):
+    def __init__(self, task_group, coro_func, done_coro_func=None):
         self._task_group = task_group
         self._coro_func = coro_func
         self._task = None
-        self._done_cb = done_cb
+        self._done_task = Task(
+            task_group, done_coro_func) if done_coro_func else None
 
     def running(self):
         return self._task != None
@@ -75,11 +76,13 @@ class Task:
 
     def _done(self, task):
         self._task = None
-        if self._done_cb:
+        if self._done_task:
             try:
-                self._done_cb(task.result())
+                result = task.result()
             except asyncio.CancelledError as e:
-                self._done_cb('CANCELED')
+                self._done_task.start('CANCELED')
+            else:
+                self._done_task.start(result)
 
 
 class Worker:
@@ -87,13 +90,13 @@ class Worker:
         self._current_build = None
         self._current_build_task = Task(
             task_group, self._start_build, self._on_build_finished)
-        self._build_finished_task = Task(task_group, self._build_finished)
 
     async def shutdown(self):
         await self._current_build_task.cancel()
         pass
 
     async def update(self):
+        print("async def update(self):")
         for i in range(1, 10):
             b = Build(i)
             print([b.id(), await b.branch(), await b.state()])
@@ -104,10 +107,12 @@ class Worker:
                 await self._current_build_task.cancel()
 
         if self._current_build is None:
+            print("if self._current_build is None:")
             builds = await Build.get_builds(Build.State['REQUESTED'])
             if not builds:
                 print("No build found in the queue")
             else:
+                print("self._current_build_task.start(builds[0])")
                 self._current_build_task.start(builds[0])
 
     async def _start_build(self, *args):
@@ -116,19 +121,14 @@ class Worker:
         while True:
             await asyncio.sleep(1)
 
-    def _on_build_finished(self, result):
-        print(f"Starting _build_finished_task!")
-        self._build_finished_task.start(result)
-        pass
-
-    async def _build_finished(self, *args):
+    async def _on_build_finished(self, *args):
         result = args[0][0]
         if result == 'CANCELED':
-            print(f"_build_finished: canceled")
+            print(f"_on_build_finished: canceled")
         elif result == 0:
-            print(f"_build_finished: succeeded")
+            print(f"_on_build_finished: succeeded")
         else:
-            print(f"_build_finished: failed")
+            print(f"_on_build_finished: failed")
         await self._reset_current_build()
 
     async def _reset_current_build(self):
@@ -172,7 +172,7 @@ async def _main():
                 await asyncio.sleep(5)
 
         await worker.shutdown()
-        await db.close_db()
+    await db.close_db()
 
 
 def _run():
