@@ -121,6 +121,12 @@ class Worker:
                     print([b.id(), await b.branch(), await b.state()])
                 self._current_build_task.start(builds[0])
 
+    async def disconnected(self):
+        if self._current_build is not None:
+            await self._build_finished_task.cancel()
+            await self._current_build_task.cancel()
+            await self._reset_current_build()
+
     async def _start_build(self, *args):
         self._current_build = args[0][0]
         await self._current_build.set_state(Build.State['BUILDING'])
@@ -134,14 +140,17 @@ class Worker:
 
     async def _build_finished(self, *args):
         result = args[0][0]
-        if result == 'CANCELED':
-            print(f"_build_finished: canceled")
-        elif result == 0:
-            print(f"_build_finished: succeeded")
-            await self._current_build.set_state(Build.State['SUCCEEDED'])
-        else:
-            print(f"_build_finished: failed")
-            await self._current_build.set_state(Build.State['FAILED'])
+        try:
+            if result == 'CANCELED':
+                print(f"_build_finished: canceled")
+            elif result == 0:
+                print(f"_build_finished: succeeded")
+                await self._current_build.set_state(Build.State['SUCCEEDED'])
+            else:
+                print(f"_build_finished: failed")
+                await self._current_build.set_state(Build.State['FAILED'])
+        except OperationalError:
+            pass
         await self._reset_current_build()
 
     async def _reset_current_build(self):
@@ -181,6 +190,7 @@ async def _main():
                     await worker.update()
                 except OperationalError as e:
                     print(f'db error: {e.args}')
+                    await worker.disconnected()
                     break
                 await asyncio.sleep(5)
 
