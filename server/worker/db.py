@@ -21,7 +21,7 @@ INSERT INTO builder.builds (branch, state) VALUES ("stable8", 1);
 _pool = None
 
 
-async def open_db():
+async def open():
     print("Opening db")
     global _pool
     _pool = await aiomysql.create_pool(host='127.0.0.1', port=3306,
@@ -32,7 +32,7 @@ async def open_db():
             await cursor.execute(_create_db)
 
 
-async def close_db():
+async def close():
     global _pool
     if _pool is not None:
         print("Closing db")
@@ -43,6 +43,19 @@ async def close_db():
 
 def conn():
     return _pool.acquire()
+
+
+async def query(query, args=(), one=False):
+    async with _pool.acquire() as conn:
+        async with conn.cursor() as cur:
+            await cur.execute(query, args)
+            return await cur.fetchone() if one else await cur.fetchall()
+
+
+async def update(query, args=()):
+    async with _pool.acquire() as conn:
+        async with conn.cursor() as cur:
+            await cur.execute(query, args)
 
 
 async def now():
