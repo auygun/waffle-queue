@@ -24,10 +24,6 @@ class Entity:
 
 
 class Build(Entity):
-    # This needs to match with the db enum
-    State = {'REQUESTED': 1, 'BUILDING': 2,
-             'SUCCEEDED': 3, 'FAILED': 4, 'ABORTED': 5}
-
     async def branch(self):
         return await self._fetch('branch')
 
@@ -112,9 +108,9 @@ class Worker:
                 await self._current_build_task.cancel()
 
         if self._current_build is None:
-            builds = await Build.get_builds(Build.State['BUILDING'], count=1000)
+            builds = await Build.get_builds('BUILDING', count=1000)
             if not builds:
-                builds = await Build.get_builds(Build.State['REQUESTED'], count=1000)
+                builds = await Build.get_builds('REQUESTED', count=1000)
             if not builds:
                 print("No build found in the queue")
             else:
@@ -130,7 +126,7 @@ class Worker:
 
     async def _start_build(self, *args):
         self._current_build = args[0][0]
-        await self._current_build.set_state(Build.State['BUILDING'])
+        await self._current_build.set_state('BUILDING')
         print(f'Building: {self._current_build.id()}, {await self._current_build.branch()}, {await self._current_build.state()}')
         await asyncio.sleep(1)
         return 1
@@ -146,10 +142,10 @@ class Worker:
                 print(f"_build_finished: canceled")
             elif result == 0:
                 print(f"_build_finished: succeeded")
-                await self._current_build.set_state(Build.State['SUCCEEDED'])
+                await self._current_build.set_state('SUCCEEDED')
             else:
                 print(f"_build_finished: failed")
-                await self._current_build.set_state(Build.State['FAILED'])
+                await self._current_build.set_state('FAILED')
         except OperationalError:
             pass
         await self._reset_current_build()
