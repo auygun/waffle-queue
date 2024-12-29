@@ -136,7 +136,6 @@ class Worker:
         result = args[0][0]
         if result == 'CANCELED':
             print(f"_build_finished: canceled")
-            await self._current_build.set_state(Build.State['ABORTED'])
         elif result == 0:
             print(f"_build_finished: succeeded")
             await self._current_build.set_state(Build.State['SUCCEEDED'])
