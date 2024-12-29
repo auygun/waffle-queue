@@ -39,23 +39,24 @@ class Build(Entity):
 
     @staticmethod
     async def get_builds(state, count=1):
-        async with db.conn() as conn:
-            async with conn.cursor() as cur:
-                await cur.execute('SELECT id FROM builds WHERE state=%s ORDER BY id LIMIT %s', (state, count))
-                rows = await cur.fetchall()
+        async with db.connection() as conn:
+            async with conn.cursor() as cursor:
+                await cursor.execute('SELECT id FROM builds WHERE state=%s ORDER BY id LIMIT %s', (state, count))
+                rows = await cursor.fetchall()
                 return [Build(r[0]) for r in rows]
 
     async def _fetch(self, field):
-        async with db.conn() as conn:
-            async with conn.cursor() as cur:
-                await cur.execute(f'SELECT {field} FROM builds WHERE id=%s', (self.id()))
-                r = await cur.fetchone()
+        async with db.connection() as conn:
+            async with conn.cursor() as cursor:
+                await cursor.execute(f'SELECT {field} FROM builds WHERE id=%s', (self.id()))
+                r = await cursor.fetchone()
                 return r[0] if r is not None else None
 
     async def _update(self, field, value):
-        async with db.conn() as conn:
-            async with conn.cursor() as cur:
-                await cur.execute(f'UPDATE builds SET {field}=%s WHERE id=%s', (value, self.id()))
+        async with db.connection() as conn:
+            async with conn.cursor() as cursor:
+                await cursor.execute(f'UPDATE builds SET {field}=%s WHERE id=%s', (value, self.id()))
+            await conn.commit()
 
 
 class Task:
@@ -66,7 +67,7 @@ class Task:
         self._done_cb = done_cb
 
     def running(self):
-        return self._task != None
+        return self._task is not None
 
     def start(self, *args):
         if not self._task:
@@ -180,7 +181,7 @@ async def _main():
 
         while not shutdown.shutdown:
             try:
-                await db.open_db()
+                await db.open()
             except OperationalError:
                 await asyncio.sleep(5)
                 continue
@@ -195,7 +196,7 @@ async def _main():
                 await asyncio.sleep(5)
 
         await worker.shutdown()
-    await db.close_db()
+    await db.close()
 
 
 def _run():
