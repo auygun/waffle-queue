@@ -59,12 +59,11 @@ class Build(Entity):
 
 
 class Task:
-    def __init__(self, task_group, coro_func, done_coro_func=None):
+    def __init__(self, task_group, coro_func, done_cb=None):
         self._task_group = task_group
         self._coro_func = coro_func
         self._task = None
-        self._done_task = Task(
-            task_group, done_coro_func) if done_coro_func else None
+        self._done_cb = done_cb
 
     def running(self):
         return self._task != None
@@ -86,13 +85,13 @@ class Task:
 
     def _done(self, task):
         self._task = None
-        if self._done_task:
+        if self._done_cb:
             try:
                 result = task.result()
             except asyncio.CancelledError as e:
-                self._done_task.start('CANCELED')
+                self._done_cb('CANCELED')
             else:
-                self._done_task.start(result)
+                self._done_cb(result)
 
 
 class Worker:
@@ -100,6 +99,7 @@ class Worker:
         self._current_build = None
         self._current_build_task = Task(
             task_group, self._start_build, self._on_build_finished)
+        self._build_finished_task = Task(task_group, self._build_finished)
 
     async def shutdown(self):
         await self._current_build_task.cancel()
@@ -128,16 +128,20 @@ class Worker:
         await asyncio.sleep(1)
         return 1
 
-    async def _on_build_finished(self, *args):
+    def _on_build_finished(self, result):
+        self._build_finished_task.start(result)
+        pass
+
+    async def _build_finished(self, *args):
         result = args[0][0]
         if result == 'CANCELED':
-            print(f"_on_build_finished: canceled")
+            print(f"_build_finished: canceled")
             await self._current_build.set_state(Build.State['ABORTED'])
         elif result == 0:
-            print(f"_on_build_finished: succeeded")
+            print(f"_build_finished: succeeded")
             await self._current_build.set_state(Build.State['SUCCEEDED'])
         else:
-            print(f"_on_build_finished: failed")
+            print(f"_build_finished: failed")
             await self._current_build.set_state(Build.State['FAILED'])
         await self._reset_current_build()
 
