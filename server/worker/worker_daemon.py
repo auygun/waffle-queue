@@ -39,15 +39,23 @@ class Build(Entity):
 
     @staticmethod
     async def get_builds(state, count=1):
-        rows = await db.query('SELECT id FROM builds WHERE state=%s ORDER BY id LIMIT %s', (state, count))
-        return [Build(r[0]) for r in rows]
+        async with db.conn() as conn:
+            async with conn.cursor() as cur:
+                await cur.execute('SELECT id FROM builds WHERE state=%s ORDER BY id LIMIT %s', (state, count))
+                rows = await cur.fetchall()
+                return [Build(r[0]) for r in rows]
 
     async def _fetch(self, field):
-        rows = await db.query(f'SELECT {field} FROM builds WHERE id=%s', (self.id()), one=True)
-        return rows[0] if rows is not None else None
+        async with db.conn() as conn:
+            async with conn.cursor() as cur:
+                await cur.execute(f'SELECT {field} FROM builds WHERE id=%s', (self.id()))
+                r = await cur.fetchone()
+                return r[0] if r is not None else None
 
     async def _update(self, field, value):
-        await db.update(f'UPDATE builds SET {field}=%s WHERE id=%s', (value, self.id()))
+        async with db.conn() as conn:
+            async with conn.cursor() as cur:
+                await cur.execute(f'UPDATE builds SET {field}=%s WHERE id=%s', (value, self.id()))
 
 
 class Task:
@@ -172,7 +180,7 @@ async def _main():
 
         while not shutdown.shutdown:
             try:
-                await db.open()
+                await db.open_db()
             except OperationalError:
                 await asyncio.sleep(5)
                 continue
@@ -187,7 +195,7 @@ async def _main():
                 await asyncio.sleep(5)
 
         await worker.shutdown()
-    await db.close()
+    await db.close_db()
 
 
 def _run():
