@@ -66,7 +66,7 @@ function formatDate(v) {
       <tr>
         <th>ID</th>
         <th>Branch</th>
-        <th>Status</th>
+        <th>State</th>
         <th></th>
       </tr>
     </thead>
@@ -74,7 +74,7 @@ function formatDate(v) {
       <tr v-for="(build, index) in builds" :key="index">
         <td>{{ build.id }}</td>
         <td>{{ build.branch }}</td>
-        <td>{{ build.status }}</td>
+        <td>{{ build.state }}</td>
         <td>
           <div>
             <button>Update</button>&nbsp<button>Delete</button>

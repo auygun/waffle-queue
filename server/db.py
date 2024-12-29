@@ -1,89 +1,45 @@
-import sqlite3
-import click
+import pymysql
 from flask import g
-import datetime
 
 import worker
 
-_schema_script = '''
-DROP TABLE IF EXISTS builds;
-CREATE TABLE builds(id INTEGER PRIMARY KEY, branch, status);
-'''
-
 
 def init_app(app):
-    app.teardown_appcontext(close_db)
-    app.cli.add_command(init_db_command)
-    app.cli.add_command(init_test_db_command)
+    app.teardown_appcontext(close)
 
 
-def init_db():
-    db = get_db()
-    with db:
-        db.executescript(_schema_script)
+def connection():
+    if '_conn' not in g:
+        print("db: Opening connection")
+        g._conn = pymysql.connect(host='127.0.0.1', port=3306,
+                                  user='mysql', password='mysql',
+                                  db='builder', autocommit=False,
+                                  cursorclass=pymysql.cursors.DictCursor)
+    return g._conn
 
 
-def get_db():
-    if 'db' not in g:
-        print("db: Opening db")
-        g.db = sqlite3.connect("file:builder.db?mode=rwc",
-                               uri=True, detect_types=sqlite3.PARSE_DECLTYPES)
-        g.db.row_factory = lambda cursor, row: dict(
-            (cursor.description[idx][0], value) for idx, value in enumerate(row))
-        sqlite3.register_converter(
-            "timestamp", lambda v: datetime.fromisoformat(v.decode()))
-    return g.db
+def close(e=None):
+    conn = g.pop('_conn', None)
+    if conn is not None:
+        print("db: Closing connection")
+        conn.commit()
+        conn.close()
 
 
-def close_db(e=None):
-    db = g.pop('db', None)
-    if db is not None:
-        print("db: Closing db")
-        db.commit()
-        db.close()
+def cursor():
+    return connection().cursor()
 
 
-def query_db(query, args=(), one=False):
-    cursor = get_db().execute(query, args)
-    rows = cursor.fetchall()
-    cursor.close()
-    return (rows[0] if rows else None) if one else rows
+def commit():
+    return connection().commit()
 
 
-@click.command('init-db')
-def init_db_command():
-    """Clear the existing data and create new tables."""
-    try:
-        init_db()
-        click.echo('Initialized the database.')
-    except sqlite3.OperationalError as e:
-        print(e)
-    worker.stop()
+def rollback():
+    return connection().rollback()
 
 
-@click.command('init-test-db')
-def init_test_db_command():
-    try:
-        init_db()
-        db = get_db()
-        with db:
-            BUILDS = [
-                {
-                    'branch': 'my-task-branch1',
-                    'status': 'requested'
-                },
-                {
-                    'branch': 'another-task-branch',
-                    'status': 'building'
-                },
-                {
-                    'branch': 'my-task-branch2',
-                    'status': 'done'
-                }
-            ]
-            db.executemany(
-                "INSERT INTO builds VALUES(NULL, :branch, :status)", BUILDS)
-        click.echo('Initialized the database with test data.')
-    except sqlite3.OperationalError as e:
-        print(e)
-    worker.stop()
+def now():
+    with connection() as conn:
+        with conn.cursor() as cursor:
+            cursor.execute("SELECT NOW()")
+            return cursor.next()[0]
