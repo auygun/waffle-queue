@@ -18,6 +18,11 @@ export default defineConfig({
         target: "https://api.github.com",
         changeOrigin: true,
         secure: false,
+      },
+      "/api/v1/": {
+        target: "http://localhost:5001",
+        changeOrigin: true,
+        secure: false,
       }
     }
   },

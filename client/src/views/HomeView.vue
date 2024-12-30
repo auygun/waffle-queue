@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useAxios } from '@/client/axios'
-import { ref, watchEffect, useTemplateRef, onMounted } from 'vue'
+import { ref, watchEffect, useTemplateRef, onMounted, onUnmounted } from 'vue'
 import Modal from '@/components/Modal.vue'
 
 const branches = ['main', 'minor']
@@ -16,7 +16,7 @@ async function fetchCommits(sha: string) {
   try {
     const formData = new FormData()
     formData.append('branch', 'test-branch')
-    await useAxios().postFormData('http://localhost:5001/api/v1/integrate', formData)
+    await useAxios().postFormData('/api/v1/integrate', formData)
     await getBuilds()
 
     const response = await useAxios().get('/repos/vuejs/core/commits', { per_page: 3, sha: sha })
@@ -28,7 +28,7 @@ async function fetchCommits(sha: string) {
 
 async function getBuilds() {
   try {
-    const response = await useAxios().get('http://localhost:5001/api/v1/builds')
+    const response = await useAxios().get('/api/v1/builds')
     builds.value = response.data.builds
   } catch (error) {
     showModal(error)
@@ -39,8 +39,18 @@ watchEffect(async () => {
   await fetchCommits(currentBranch.value)
 })
 
+let intervalId
+
 onMounted(async () => {
   await getBuilds()
+
+  intervalId = setInterval(async () => {
+    await getBuilds()
+  }, 1000)
+})
+
+onUnmounted(() => {
+  clearInterval(intervalId)
 })
 
 function truncate(v) {
