@@ -27,7 +27,7 @@ def integrate():
         response['message'] = 'No branch name was specified'
     else:
         with db.cursor() as cursor:
-            cursor.execute('INSERT INTO builds (branch, state) VALUES (%s, %s)', (branch, 1))
+            cursor.execute('INSERT INTO builds (branch, state) VALUES (%s, %s)', (branch, 'REQUESTED'))
         db.commit()
         response['status'] = 'success'
     return jsonify(response)

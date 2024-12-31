@@ -1,8 +1,6 @@
 import pymysql
 from flask import g
 
-import worker
-
 
 def init_app(app):
     app.teardown_appcontext(close)

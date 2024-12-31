@@ -52,7 +52,6 @@ class Build(Entity):
         async with db.connection() as conn:
             async with conn.cursor() as cursor:
                 await cursor.execute(f'UPDATE builds SET {field}=%s WHERE id=%s', (value, self.id()))
-            await conn.commit()
 
 
 class Task:
