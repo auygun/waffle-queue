@@ -103,7 +103,8 @@ class Worker:
 
     async def update(self):
         if self._current_build is not None and self._current_build_task.running():
-            if await self._current_build.state() == 'ABORTED':
+            state = await self._current_build.state()
+            if state is None or state == 'ABORTED':
                 await self._current_build_task.cancel()
 
         if self._current_build is None:
