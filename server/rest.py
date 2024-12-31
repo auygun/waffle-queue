@@ -32,6 +32,15 @@ def integrate():
         response['status'] = 'success'
     return jsonify(response)
 
+@bp.route("/dev/clear", methods=["POST"])
+def clear():
+    response = {}
+    with db.cursor() as cursor:
+        cursor.execute('DELETE FROM builds')
+    db.commit()
+    response['status'] = 'success'
+    return jsonify(response)
+
 
 # @bp.route('/books', methods=['GET', 'POST'])
 # def all_books():

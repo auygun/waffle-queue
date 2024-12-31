@@ -21,6 +21,15 @@ async function integrate() {
   }
 }
 
+async function clear() {
+  try {
+    const formData = new FormData()
+    await useAxios().postFormData('/api/v1/dev/clear', formData)
+  } catch (error) {
+    showModal(error)
+  }
+}
+
 async function getBuilds() {
   try {
     const response = await useAxios().get('/api/v1/builds')
@@ -48,7 +57,8 @@ onUnmounted(() => {
 <template>
   <h3>Integration</h3>
   <input v-model="sourceBranchName" placeholder="Source branch" />&nbsp
-  <button @click="integrate">Request</button>
+  <button @click="integrate">Request</button>&nbsp
+  <button @click="clear">Clear</button>
 
   <table width="100%">
     <thead>
