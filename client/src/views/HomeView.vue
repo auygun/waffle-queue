@@ -3,17 +3,18 @@ import { useAxios } from '@/client/axios'
 import { ref, watchEffect, useTemplateRef, onMounted, onUnmounted } from 'vue'
 import Modal from '@/components/Modal.vue'
 
-const branches = ['main', 'minor']
+// Integration arguments
+const sourceBranchName = ref("")
 
-let builds = ref([])
+const builds = ref([])
 
 const modal = useTemplateRef('modal')
 const showModal = (msg: string) => modal.value.showModal(msg)
 
-async function integrate(branchName: string) {
+async function integrate() {
   try {
     const formData = new FormData()
-    formData.append('branch', branchName)
+    formData.append('branch', sourceBranchName.value)
     await useAxios().postFormData('/api/v1/integrate', formData)
   } catch (error) {
     showModal(error)
@@ -45,6 +46,10 @@ onUnmounted(() => {
 </script>
 
 <template>
+  <h3>Integration</h3>
+  <input v-model="sourceBranchName" placeholder="Source branch" />&nbsp
+  <button @click="integrate">Request</button>
+
   <table width="100%">
     <thead>
       <tr>
