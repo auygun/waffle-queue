@@ -82,7 +82,7 @@ onUnmounted(() => {
         <td>{{ build.state }}</td>
         <td>
           <div>
-            <button>Update</button>&nbsp<button>Delete</button>
+            <button>Abort</button>
           </div>
         </td>
       </tr>
