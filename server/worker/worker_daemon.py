@@ -1,7 +1,7 @@
 import asyncio
 import sys
 from pymysql.err import OperationalError
-import db
+import db_async as db
 import signal
 
 
