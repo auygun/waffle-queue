@@ -1,7 +1,11 @@
 <script setup lang="ts">
 import { useAxios } from '@/client/axios'
-import { ref, watchEffect, useTemplateRef, onMounted, onUnmounted } from 'vue'
+import { ref, useTemplateRef, onMounted, onUnmounted } from 'vue'
 import Modal from '@/components/Modal.vue'
+
+const emit = defineEmits<{
+  syncOnEvent: [syncOn: boolean]
+}>()
 
 // Integration arguments
 const sourceBranchName = ref("")
@@ -9,7 +13,7 @@ const sourceBranchName = ref("")
 const builds = ref([])
 
 const modal = useTemplateRef('modal')
-const showModal = (msg: string) => modal.value.showModal(msg)
+const showModal = (msg: string) => modal.value?.showModal(msg)
 
 async function integrate() {
   try {
@@ -34,8 +38,10 @@ async function getBuilds() {
   try {
     const response = await useAxios().get('/api/v1/builds')
     builds.value = response.data.builds
+    console.log("call emit('syncOnEvent', false)")
+    emit('syncOnEvent', true)
   } catch (error) {
-    showModal(error)
+    emit('syncOnEvent', false)
   }
 }
 

@@ -1,5 +1,14 @@
 <script setup lang="ts">
 import { RouterLink, RouterView } from 'vue-router'
+import { useTemplateRef } from 'vue'
+import Sync from '@/components/Sync.vue'
+
+const sync = useTemplateRef('sync')
+const setSyncOn = (on: boolean) => sync.value?.setSyncOn(on)
+
+function onSyncOnEvent(syncOn: boolean) {
+  setSyncOn(syncOn)
+}
 </script>
 
 <template>
@@ -13,12 +22,13 @@ import { RouterLink, RouterView } from 'vue-router'
         <li>
           <RouterLink to="/about">About</RouterLink>
         </li>
+        <Sync ref="sync" />
       </ul>
     </nav>
   </header>
 
   <main>
-    <RouterView />
+    <RouterView @sync-on-event="onSyncOnEvent"/>
   </main>
 
   <footer>
