@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, abort
 import db
 
 bp = Blueprint("rest", __name__, url_prefix="/api/v1")
@@ -23,13 +23,21 @@ def integrate():
     response = {}
     branch = request.form.get("branch", "")
     if branch == "":
-        response['status'] = 'failure'
-        response['message'] = 'No branch name was specified'
-    else:
-        with db.cursor() as cursor:
-            cursor.execute('INSERT INTO builds (branch, state) VALUES (%s, %s)', (branch, 'REQUESTED'))
-        db.commit()
-        response['status'] = 'success'
+        return abort(400)
+    with db.cursor() as cursor:
+        cursor.execute('INSERT INTO builds (branch, state) VALUES (%s, %s)', (branch, 'REQUESTED'))
+    db.commit()
+    response['status'] = 'success'
+    return jsonify(response)
+
+@bp.route("/abort/<build_id>", methods=["POST"])
+def abort(build_id):
+    print(build_id)
+    response = {}
+    with db.cursor() as cursor:
+        cursor.execute('UPDATE builds SET state=%s WHERE id=%s', ('ABORTED', build_id))
+    db.commit()
+    response['status'] = 'success'
     return jsonify(response)
 
 @bp.route("/dev/clear", methods=["POST"])

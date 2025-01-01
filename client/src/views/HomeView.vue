@@ -38,10 +38,18 @@ async function getBuilds() {
   try {
     const response = await useAxios().get('/api/v1/builds')
     builds.value = response.data.builds
-    console.log("call emit('syncOnEvent', false)")
     emit('syncOnEvent', true)
   } catch (error) {
     emit('syncOnEvent', false)
+  }
+}
+
+async function abort(build_id: number) {
+  try {
+    const formData = new FormData()
+    await useAxios().postFormData(`/api/v1/abort/${build_id}`, formData)
+  } catch (error) {
+    showModal(error)
   }
 }
 
@@ -82,7 +90,7 @@ onUnmounted(() => {
         <td>{{ build.state }}</td>
         <td>
           <div>
-            <button>Abort</button>
+            <button @click="abort(build.id)">Abort</button>
           </div>
         </td>
       </tr>
