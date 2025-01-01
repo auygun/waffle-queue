@@ -4,6 +4,12 @@ import db
 bp = Blueprint("rest", __name__, url_prefix="/api/v1")
 
 
+@bp.after_request
+def add_cache_controls(response):
+    response.cache_control.no_store = True
+    return response
+
+
 @bp.route('/ping', methods=['GET'])
 def ping_pong():
     return jsonify('pong!')
@@ -25,20 +31,24 @@ def integrate():
     if branch == "":
         return abort(400)
     with db.cursor() as cursor:
-        cursor.execute('INSERT INTO builds (branch, state) VALUES (%s, %s)', (branch, 'REQUESTED'))
+        cursor.execute(
+            'INSERT INTO builds (branch, state) VALUES (%s, %s)', (branch, 'REQUESTED'))
     db.commit()
     response['status'] = 'success'
     return jsonify(response)
+
 
 @bp.route("/abort/<build_id>", methods=["POST"])
 def abort(build_id):
     print(build_id)
     response = {}
     with db.cursor() as cursor:
-        cursor.execute('UPDATE builds SET state=%s WHERE id=%s', ('ABORTED', build_id))
+        cursor.execute('UPDATE builds SET state=%s WHERE id=%s',
+                       ('ABORTED', build_id))
     db.commit()
     response['status'] = 'success'
     return jsonify(response)
+
 
 @bp.route("/dev/clear", methods=["POST"])
 def clear():
