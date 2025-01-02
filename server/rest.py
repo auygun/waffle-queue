@@ -10,6 +10,14 @@ def add_cache_controls(response):
     return response
 
 
+@bp.teardown_request
+def db_commit(_exc):
+    try:
+        db.commit()
+    except:
+        pass
+
+
 @bp.route('/builds', methods=['GET'])
 def get_builds():
     with db.cursor() as cursor:
@@ -27,7 +35,6 @@ def integrate():
     with db.cursor() as cursor:
         cursor.execute(
             'INSERT INTO builds (branch, state) VALUES (%s, %s)', (branch, 'REQUESTED'))
-    db.commit()
     return {}
 
 
@@ -37,7 +44,6 @@ def abort(build_id):
     with db.cursor() as cursor:
         cursor.execute('UPDATE builds SET state=%s WHERE id=%s',
                        ('ABORTED', build_id))
-    db.commit()
     return {}
 
 
@@ -45,7 +51,6 @@ def abort(build_id):
 def clear():
     with db.cursor() as cursor:
         cursor.execute('DELETE FROM builds')
-    db.commit()
     return {}
 
 
