@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify, abort
+from flask import Blueprint, request, abort
 import db
 
 bp = Blueprint("rest", __name__, url_prefix="/api/v1")
@@ -12,16 +12,15 @@ def add_cache_controls(response):
 
 @bp.route('/builds', methods=['GET'])
 def get_builds():
-    response = {'status': 'success'}
     with db.cursor() as cursor:
         cursor.execute('select * from builds')
-        response['builds'] = cursor.fetchall()
-    return jsonify(response)
+        return {
+            'builds': cursor.fetchall()
+        }
 
 
 @bp.route("/integrate", methods=["POST"])
 def integrate():
-    response = {}
     branch = request.form.get("branch", "")
     if branch == "":
         return abort(400)
@@ -29,30 +28,25 @@ def integrate():
         cursor.execute(
             'INSERT INTO builds (branch, state) VALUES (%s, %s)', (branch, 'REQUESTED'))
     db.commit()
-    response['status'] = 'success'
-    return jsonify(response)
+    return {}
 
 
 @bp.route("/abort/<build_id>", methods=["POST"])
 def abort(build_id):
     print(build_id)
-    response = {}
     with db.cursor() as cursor:
         cursor.execute('UPDATE builds SET state=%s WHERE id=%s',
                        ('ABORTED', build_id))
     db.commit()
-    response['status'] = 'success'
-    return jsonify(response)
+    return {}
 
 
 @bp.route("/dev/clear", methods=["POST"])
 def clear():
-    response = {}
     with db.cursor() as cursor:
         cursor.execute('DELETE FROM builds')
     db.commit()
-    response['status'] = 'success'
-    return jsonify(response)
+    return {}
 
 
 # @bp.route('/books', methods=['GET', 'POST'])
