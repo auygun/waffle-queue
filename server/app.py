@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import os
 from flask import Flask
 from flask_cors import CORS
@@ -28,7 +30,7 @@ if __name__ == '__main__':
         port=int(os.getenv("PORT", "5001")),
         debug=True,
         use_evalex=False,
-        # webapp_rest is not thread safe (global db connection)
+        # not thread safe (global db connection)
         threaded=False,
         # set more than one process to simulate normal usage.
         processes=2,

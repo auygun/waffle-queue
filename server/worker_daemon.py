@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import asyncio
 import sys
 from pymysql.err import OperationalError
@@ -196,11 +198,8 @@ async def _main():
 
 
 def _run():
-    print("Worker process running.")
     asyncio.run(_main())
-    print("Worker process stopped.")
 
 
 if __name__ == "__main__":
-    # os.chdir(os.path.dirname(os.path.abspath(__file__)))
     _run()
