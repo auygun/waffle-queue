@@ -1,3 +1,4 @@
+import os
 from flask import Flask
 from flask_cors import CORS
 import db
@@ -12,7 +13,7 @@ def create_app():
     # enable CORS
     CORS(app, resources={r'/*': {'origins': '*'}})
 
-    db.init_app(app)
+    db.open()
 
     @app.route('/ping', methods=['GET'])
     def ping_pong():
@@ -22,4 +23,13 @@ def create_app():
 
 
 if __name__ == '__main__':
-    print("Usage: flask run --port=5001 --debug")
+    create_app().run(
+        host="127.0.0.1",
+        port=int(os.getenv("PORT", "5001")),
+        debug=True,
+        use_evalex=False,
+        # webapp_rest is not thread safe (global db connection)
+        threaded=False,
+        # set more than one process to simulate normal usage.
+        processes=2,
+    )

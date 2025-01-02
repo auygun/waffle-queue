@@ -1,43 +1,41 @@
 import pymysql
-from flask import g
 
 
-def init_app(app):
-    app.teardown_appcontext(close)
+_conn = None
 
 
-def connection():
-    if '_conn' not in g:
-        print("db: Opening connection")
-        g._conn = pymysql.connect(host='127.0.0.1', port=3306,
-                                  user='mysql', password='mysql',
-                                  db='builder', autocommit=False,
-                                  cursorclass=pymysql.cursors.DictCursor)
-    return g._conn
+def open():
+    global _conn
+    print("db: Opening connection")
+    _conn = pymysql.connect(host='127.0.0.1', port=3306,
+                            user='mysql', password='mysql',
+                            db='builder', autocommit=False,
+                            cursorclass=pymysql.cursors.DictCursor)
 
 
 def close(e=None):
-    conn = g.pop('_conn', None)
-    if conn is not None:
+    global _conn
+    if _conn is not None:
         print("db: Closing connection")
-        conn.commit()
-        conn.close()
+        _conn.commit()
+        _conn.close()
+        _conn = None
 
 
 def cursor():
-    return connection().cursor()
+    _conn.ping(reconnect=True)
+    return _conn.cursor()
 
 
 def commit():
-    return connection().commit()
+    return _conn.commit()
 
 
 def rollback():
-    return connection().rollback()
+    return _conn.rollback()
 
 
 def now():
-    with connection() as conn:
-        with conn.cursor() as cursor:
-            cursor.execute("SELECT NOW()")
-            return cursor.next()[0]
+    with _conn.cursor() as cursor:
+        cursor.execute("SELECT NOW()")
+        return cursor.next()[0]
