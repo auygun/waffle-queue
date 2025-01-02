@@ -5,10 +5,6 @@ import db_async as db
 import signal
 
 
-_proc = None
-_queue = None
-
-
 class Entity:
     def __init__(self, id):
         self._id = id
@@ -35,23 +31,20 @@ class Build(Entity):
 
     @staticmethod
     async def get_builds(state, count=1):
-        async with db.connection() as conn:
-            async with conn.cursor() as cursor:
-                await cursor.execute('SELECT id FROM builds WHERE state=%s ORDER BY id LIMIT %s', (state, count))
-                rows = await cursor.fetchall()
-                return [Build(r[0]) for r in rows]
+        async with db.cursor() as cursor:
+            await cursor.execute('SELECT id FROM builds WHERE state=%s ORDER BY id LIMIT %s', (state, count))
+            rows = await cursor.fetchall()
+            return [Build(r[0]) for r in rows]
 
     async def _fetch(self, field):
-        async with db.connection() as conn:
-            async with conn.cursor() as cursor:
-                await cursor.execute(f'SELECT {field} FROM builds WHERE id=%s', (self.id()))
-                r = await cursor.fetchone()
-                return r[0] if r is not None else None
+        async with db.cursor() as cursor:
+            await cursor.execute(f'SELECT {field} FROM builds WHERE id=%s', (self.id()))
+            r = await cursor.fetchone()
+            return r[0] if r is not None else None
 
     async def _update(self, field, value):
-        async with db.connection() as conn:
-            async with conn.cursor() as cursor:
-                await cursor.execute(f'UPDATE builds SET {field}=%s WHERE id=%s', (value, self.id()))
+        async with db.cursor() as cursor:
+            await cursor.execute(f'UPDATE builds SET {field}=%s WHERE id=%s', (value, self.id()))
 
 
 class Task:
@@ -99,24 +92,26 @@ class Worker:
 
     async def shutdown(self):
         await self._current_build_task.cancel()
-        pass
 
     async def update(self):
-        if self._current_build is not None and self._current_build_task.running():
-            state = await self._current_build.state()
-            if state is None or state == 'ABORTED':
-                await self._current_build_task.cancel()
+        async with db.acquire():
+            await db.commit()
 
-        if self._current_build is None:
-            builds = await Build.get_builds('BUILDING', count=1000)
-            if not builds:
-                builds = await Build.get_builds('REQUESTED', count=1000)
-            if not builds:
-                print("No build found in the queue")
-            else:
-                for b in builds:
-                    print([b.id(), await b.branch(), await b.state()])
-                self._current_build_task.start(builds[0])
+            if self._current_build is not None and self._current_build_task.running():
+                state = await self._current_build.state()
+                if state is None or state == 'ABORTED':
+                    await self._current_build_task.cancel()
+
+            if self._current_build is None:
+                builds = await Build.get_builds('BUILDING', count=1000)
+                if not builds:
+                    builds = await Build.get_builds('REQUESTED', count=1000)
+                if not builds:
+                    print("No build found in the queue")
+                else:
+                    for b in builds:
+                        print([b.id(), await b.branch(), await b.state()])
+                    self._current_build_task.start(builds[0])
 
     async def disconnected(self):
         if self._current_build is not None:
@@ -125,10 +120,13 @@ class Worker:
             await self._reset_current_build()
 
     async def _start_build(self, *args):
-        self._current_build = args[0][0]
-        await self._current_build.set_state('BUILDING')
-        print(f'Building: {self._current_build.id()}, {await self._current_build.branch()}, {await self._current_build.state()}')
-        await asyncio.sleep(1)
+        async with db.acquire():
+            self._current_build = args[0][0]
+            await self._current_build.set_state('BUILDING')
+            await db.commit()
+            print(f'Building: {self._current_build.id()}, {await self._current_build.branch()}, {await self._current_build.state()}')
+            await asyncio.sleep(1)
+
         return 1
 
     def _on_build_finished(self, result):
@@ -136,19 +134,21 @@ class Worker:
         pass
 
     async def _build_finished(self, *args):
-        result = args[0][0]
-        try:
-            if result == 'CANCELED':
-                print(f"_build_finished: canceled")
-            elif result == 0:
-                print(f"_build_finished: succeeded")
-                await self._current_build.set_state('SUCCEEDED')
-            else:
-                print(f"_build_finished: failed")
-                await self._current_build.set_state('FAILED')
-        except OperationalError:
-            pass
-        await self._reset_current_build()
+        async with db.acquire():
+            result = args[0][0]
+            try:
+                if result == 'CANCELED':
+                    print(f"_build_finished: canceled")
+                elif result == 0:
+                    print(f"_build_finished: succeeded")
+                    await self._current_build.set_state('SUCCEEDED')
+                else:
+                    print(f"_build_finished: failed")
+                    await self._current_build.set_state('FAILED')
+            except OperationalError:
+                pass
+            await db.commit()
+            await self._reset_current_build()
 
     async def _reset_current_build(self):
         print("_reset_current_build()")
