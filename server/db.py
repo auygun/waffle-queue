@@ -22,8 +22,11 @@ def close(e=None):
         _conn = None
 
 
-def cursor():
+def ping():
     _conn.ping(reconnect=True)
+
+
+def cursor():
     return _conn.cursor()
 
 

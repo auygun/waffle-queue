@@ -4,6 +4,11 @@ import db
 bp = Blueprint("rest", __name__, url_prefix="/api/v1")
 
 
+@bp.before_request
+def check_db_connection():
+    db.ping()
+
+
 @bp.after_request
 def add_cache_controls(response):
     response.cache_control.no_store = True
