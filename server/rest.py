@@ -10,11 +10,6 @@ def add_cache_controls(response):
     return response
 
 
-@bp.route('/ping', methods=['GET'])
-def ping_pong():
-    return jsonify('pong!')
-
-
 @bp.route('/builds', methods=['GET'])
 def get_builds():
     response = {'status': 'success'}

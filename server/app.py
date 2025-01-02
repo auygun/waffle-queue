@@ -14,6 +14,10 @@ def create_app():
 
     db.init_app(app)
 
+    @app.route('/ping', methods=['GET'])
+    def ping_pong():
+        return 'pong!'
+
     return app
 
 
