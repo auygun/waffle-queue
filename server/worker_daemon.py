@@ -32,9 +32,12 @@ class Build(Entity):
         return await self._update('state', value)
 
     @staticmethod
-    async def get_builds(state, count=1):
+    async def get_builds(state: list, count=1):
+        where = 'OR '.join(f"state='{x}' " for x in state)
+        order = ('state ' + ('DESC' if state[0] < state[1]
+                 else 'ASC') + ',') if len(state) > 1 else ''
         async with db.cursor() as cursor:
-            await cursor.execute('SELECT id FROM builds WHERE state=%s ORDER BY id LIMIT %s', (state, count))
+            await cursor.execute(f'SELECT id FROM builds WHERE {where} ORDER BY {order} id DESC LIMIT %s', (count))
             rows = await cursor.fetchall()
             return [Build(r[0]) for r in rows]
 
@@ -108,9 +111,7 @@ class Worker:
                     await self._current_build_task.cancel()
 
             if self._current_build is None:
-                builds = await Build.get_builds('BUILDING', count=1000)
-                if not builds:
-                    builds = await Build.get_builds('REQUESTED', count=1000)
+                builds = await Build.get_builds(['BUILDING', 'REQUESTED'], count=1000)
                 if not builds:
                     print("No build found in the queue")
                 else:
