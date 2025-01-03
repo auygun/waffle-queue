@@ -97,6 +97,9 @@ class Worker:
 
     async def update(self):
         async with db.acquire():
+            # For some reason, do a commit in conn 1 after insert, then select
+            # in conn 2 doesn't work; but do a commit (or rollback) in conn 2
+            # before select works.
             await db.commit()
 
             if self._current_build is not None and self._current_build_task.running():
