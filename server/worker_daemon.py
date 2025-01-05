@@ -106,10 +106,8 @@ class Worker:
 
     async def update(self):
         async with db.acquire():
-            # For some reason, do a commit in conn 1 after insert, then select
-            # in conn 2 doesn't work; but do a commit (or rollback) in conn 2
-            # before select works.
-            await db.commit()
+            # 1020, "Record has changed since last read in table 'builds'"
+            await db.rollback()
 
             if self._current_build is not None and self._current_build_task.running():
                 state = await self._current_build.state()
@@ -145,6 +143,9 @@ class Worker:
 
     async def _build_finished(self, *args):
         async with db.acquire():
+            # 1020, "Record has changed since last read in table 'builds'"
+            await db.rollback()
+
             result = args[0][0]
             try:
                 if result == 'CANCELED':
@@ -155,8 +156,8 @@ class Worker:
                 else:
                     print(f"_build_finished: failed")
                     await self._current_build.set_state('FAILED')
-            except OperationalError:
-                pass
+            except OperationalError as e:
+                print(f'db error: {e.args}')
             await db.commit()
             await self._reset_current_build()
 
