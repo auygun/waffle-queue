@@ -33,11 +33,11 @@ class Build(Entity):
 
     @staticmethod
     async def next_build_request():
-        next_request = await Build._query(['REQUESTED'], lock=True)
+        next_request = await Build._query(['REQUESTED'], lock=True, count=1)
         return next_request[0] if next_request else None
 
     @staticmethod
-    async def _query(state: list, lock=False, count=1):
+    async def _query(state: list, lock: bool, count: int):
         where = 'OR '.join(f"state='{x}' " for x in state)
         order = ('state ' + ('DESC' if state[0] < state[1]
                  else 'ASC') + ',') if len(state) > 1 else ''
