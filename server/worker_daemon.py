@@ -32,12 +32,18 @@ class Build(Entity):
         return await self._update('state', value)
 
     @staticmethod
-    async def get_builds(state: list, count=1):
+    async def next_build_request():
+        next_request = await Build._query(['REQUESTED'], lock=True)
+        return next_request[0] if next_request else None
+
+    @staticmethod
+    async def _query(state: list, lock=False, count=1):
         where = 'OR '.join(f"state='{x}' " for x in state)
         order = ('state ' + ('DESC' if state[0] < state[1]
                  else 'ASC') + ',') if len(state) > 1 else ''
+        for_update = 'FOR UPDATE SKIP LOCKED' if lock else ''
         async with db.cursor() as cursor:
-            await cursor.execute(f'SELECT id FROM builds WHERE {where} ORDER BY {order} id DESC LIMIT %s', (count))
+            await cursor.execute(f'SELECT id FROM builds WHERE {where} ORDER BY {order} id DESC LIMIT %s {for_update}', (count))
             rows = await cursor.fetchall()
             return [Build(r[0]) for r in rows]
 
@@ -111,13 +117,14 @@ class Worker:
                     await self._current_build_task.cancel()
 
             if self._current_build is None:
-                builds = await Build.get_builds(['BUILDING', 'REQUESTED'], count=1000)
-                if not builds:
-                    print("No build found in the queue")
+                build_request = await Build.next_build_request()
+                if build_request is not None:
+                    await build_request.set_state('BUILDING')
+                    await db.commit()
+                    self._current_build_task.start(build_request)
                 else:
-                    for b in builds:
-                        print([b.id(), await b.branch(), await b.state()])
-                    self._current_build_task.start(builds[0])
+                    await db.commit()
+                    print("Idle")
 
     async def disconnected(self):
         if self._current_build is not None:
@@ -128,12 +135,9 @@ class Worker:
     async def _start_build(self, *args):
         async with db.acquire():
             self._current_build = args[0][0]
-            await self._current_build.set_state('BUILDING')
-            await db.commit()
             print(f'Building: {self._current_build.id()}, {await self._current_build.branch()}, {await self._current_build.state()}')
             await asyncio.sleep(1)
-
-        return 1
+            return 1
 
     def _on_build_finished(self, result):
         self._build_finished_task.start(result)
@@ -195,7 +199,7 @@ async def _main():
                     print(f'db error: {e.args}')
                     await worker.disconnected()
                     break
-                await asyncio.sleep(5)
+                await asyncio.sleep(1)
 
         await worker.shutdown()
     await db.close()

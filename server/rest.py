@@ -26,7 +26,7 @@ def db_commit(_exc):
 @bp.route('/builds', methods=['GET'])
 def get_builds():
     with db.cursor() as cursor:
-        cursor.execute('select * from builds')
+        cursor.execute('SELECT * FROM builds')
         return {
             'builds': cursor.fetchall()
         }
