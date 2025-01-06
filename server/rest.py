@@ -45,7 +45,6 @@ def integrate():
 
 @bp.route("/abort/<build_id>", methods=["POST"])
 def abort(build_id):
-    print(build_id)
     with db.cursor() as cursor:
         cursor.execute("UPDATE builds SET state = CASE WHEN (state='REQUESTED' OR state='BUILDING') THEN 'ABORTED' ELSE state END WHERE id=%s",
                        (build_id))
