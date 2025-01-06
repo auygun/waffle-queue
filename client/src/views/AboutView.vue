@@ -1,4 +1,4 @@
 <template>
-  <h1>About builder</h1>
-  <p>My awesome builder</p>
+  <h1>About WaffleQueue</h1>
+  <p>My simple CI/CD project</p>
 </template>

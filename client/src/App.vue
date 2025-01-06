@@ -13,7 +13,7 @@ function onSyncOnEvent(syncOn: boolean) {
 
 <template>
   <header>
-    <h1><span class="material-icons">factory</span>Builder</h1>
+    <h1><span class="material-icons">factory</span>WaffleQueue</h1>
     <nav>
       <ul>
         <li>
@@ -32,8 +32,8 @@ function onSyncOnEvent(syncOn: boolean) {
   </main>
 
   <footer>
-    <p>Simple.css was created by <a href="https://kevquirk.com">Kev Quirk</a> and is licensed under the MIT license.<br>
-      <a href="https://github.com/kevquirk/simple.css-site">Source code for this site</a>
+    <p>WaffleQueue was developed by Attila Uygun and is licensed under the MIT license.<br>
+      <a href="https://github.com/auygun/waffle-queue">Source code</a>
     </p>
   </footer>
 </template>
