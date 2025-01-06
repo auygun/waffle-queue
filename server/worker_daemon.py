@@ -32,9 +32,15 @@ class Build(Entity):
         return await self._update('state', value)
 
     @staticmethod
-    async def next_build_request():
-        next_request = await Build._query(['REQUESTED'], lock=True, count=1)
-        return next_request[0] if next_request else None
+    async def pop_next_build_request():
+        # Fetching the next build request from the queue and mark it as building
+        # in an atomic transaction
+        query_result = await Build._query(['REQUESTED'], lock=True, count=1)
+        next_request = query_result[0] if query_result else None
+        if next_request is not None:
+            await next_request.set_state('BUILDING')
+        await db.commit()
+        return next_request
 
     @staticmethod
     async def _query(state: list, lock: bool, count: int):
@@ -115,13 +121,10 @@ class Worker:
                     await self._current_build_task.cancel()
 
             if self._current_build is None:
-                build_request = await Build.next_build_request()
+                build_request = await Build.pop_next_build_request()
                 if build_request is not None:
-                    await build_request.set_state('BUILDING')
-                    await db.commit()
                     self._current_build_task.start(build_request)
                 else:
-                    await db.commit()
                     print("Idle")
 
     async def disconnected(self):
@@ -134,7 +137,7 @@ class Worker:
         async with db.acquire():
             self._current_build = args[0][0]
             print(f'Building: {self._current_build.id()}, {await self._current_build.branch()}, {await self._current_build.state()}')
-            await asyncio.sleep(1)
+            await asyncio.sleep(5)
             return 1
 
     def _on_build_finished(self, result):
@@ -142,24 +145,24 @@ class Worker:
         pass
 
     async def _build_finished(self, *args):
-        async with db.acquire():
-            # 1020, "Record has changed since last read in table 'builds'"
-            await db.rollback()
-
-            result = args[0][0]
-            try:
-                if result == 'CANCELED':
-                    print(f"_build_finished: canceled")
-                elif result == 0:
-                    print(f"_build_finished: succeeded")
-                    await self._current_build.set_state('SUCCEEDED')
-                else:
-                    print(f"_build_finished: failed")
-                    await self._current_build.set_state('FAILED')
-            except OperationalError as e:
-                print(f'db error: {e.args}')
-            await db.commit()
-            await self._reset_current_build()
+        result = args[0][0]
+        if result == 'CANCELED':
+            print(f"_build_finished: canceled")
+        else:
+            async with db.acquire():
+                # 1020, "Record has changed since last read in table 'builds'"
+                await db.rollback()
+                try:
+                    if result == 0:
+                        print(f"_build_finished: succeeded")
+                        await self._current_build.set_state('SUCCEEDED')
+                    else:
+                        print(f"_build_finished: failed")
+                        await self._current_build.set_state('FAILED')
+                except OperationalError as e:
+                    print(f'db error: {e.args}')
+                await db.commit()
+        await self._reset_current_build()
 
     async def _reset_current_build(self):
         print("_reset_current_build()")
