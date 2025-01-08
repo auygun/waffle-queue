@@ -33,25 +33,17 @@ class Build(Entity):
 
     @staticmethod
     async def pop_next_build_request():
-        # Fetching the next build request from the queue and mark it as building
-        # in an atomic transaction
-        query_result = await Build._query(['REQUESTED'], lock=True, count=1)
-        next_request = query_result[0] if query_result else None
-        if next_request is not None:
-            await next_request.set_state('BUILDING')
-        await db.commit()
-        return next_request
-
-    @staticmethod
-    async def _query(state: list, lock: bool, count: int):
-        where = 'OR '.join(f"state='{x}' " for x in state)
-        order = ('state ' + ('DESC' if state[0] < state[1]
-                 else 'ASC') + ',') if len(state) > 1 else ''
-        for_update = 'FOR UPDATE SKIP LOCKED' if lock else ''
+        # Fetch the next available build request from the queue and mark it as
+        # building.
+        build = None
         async with db.cursor() as cursor:
-            await cursor.execute(f'SELECT id FROM builds WHERE {where} ORDER BY {order} id DESC LIMIT %s {for_update}', (count))
-            rows = await cursor.fetchall()
-            return [Build(r[0]) for r in rows]
+            id = await cursor.execute(f"SELECT id FROM builds WHERE state='REQUESTED' ORDER BY id FOR UPDATE SKIP LOCKED")
+            id = await cursor.fetchone()
+            if id is not None:
+                build = Build(id[0])
+                await build.set_state('BUILDING')
+            await db.commit()
+        return build
 
     async def _fetch(self, field):
         async with db.cursor() as cursor:

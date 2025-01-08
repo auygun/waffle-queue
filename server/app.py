@@ -11,8 +11,6 @@ def create_app():
     app.json.sort_keys = False
     app.register_blueprint(rest.bp)
 
-    db.open()
-
     @app.route('/ping', methods=['GET'])
     def ping_pong():
         return 'pong!'
@@ -28,6 +26,5 @@ if __name__ == '__main__':
         use_evalex=False,
         # not thread safe (global db connection)
         threaded=False,
-        # set more than one process to simulate normal usage.
-        processes=2,
+        processes=1,
     )

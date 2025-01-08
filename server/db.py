@@ -1,25 +1,16 @@
+import lazy_object_proxy
 import pymysql
 
 
-_conn = None
-
-
-def open():
-    global _conn
+def _connect():
     print("db: Opening connection")
-    _conn = pymysql.connect(host='127.0.0.1', port=3306,
-                            user='mysql', password='mysql',
-                            db='builder', autocommit=False,
-                            cursorclass=pymysql.cursors.DictCursor)
+    return pymysql.connect(host='127.0.0.1', port=3306,
+                           user='mysql', password='mysql',
+                           db='builder', autocommit=False,
+                           cursorclass=pymysql.cursors.DictCursor)
 
 
-def close(e=None):
-    global _conn
-    if _conn is not None:
-        print("db: Closing connection")
-        _conn.commit()
-        _conn.close()
-        _conn = None
+_conn = lazy_object_proxy.Proxy(_connect)
 
 
 def ping():

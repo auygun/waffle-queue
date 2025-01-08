@@ -24,6 +24,7 @@ sudo pacman -S mariadb
 sudo pacman -S python-flask
 sudo pacman -S python-pymysql
 sudo pacman -S python-aiomysql
+sudo pacman -S python-lazy-object-proxy
 
 cd server
 ./sql_runner.py create_db.sql
