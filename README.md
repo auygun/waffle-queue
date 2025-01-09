@@ -48,4 +48,5 @@ cd server
 [flask](https://github.com/pallets/flask/),
 [aiomysql](https://github.com/aio-libs/aiomysql),
 [pymysql](https://github.com/PyMySQL/PyMySQL),
+[pymysql-pool](https://github.com/jkklee/pymysql-pool),
 [mariadb](https://github.com/MariaDB/server)

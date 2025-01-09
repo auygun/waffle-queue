@@ -24,7 +24,6 @@ if __name__ == '__main__':
         port=int(os.getenv("PORT", "5001")),
         debug=True,
         use_evalex=False,
-        # not thread safe (global db connection)
-        threaded=False,
+        threaded=True,
         processes=1,
     )
