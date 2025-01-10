@@ -29,6 +29,7 @@ sudo pacman -S python-lazy-object-proxy
 cd server
 ./sql_runner.py create_db.sql
 
+cd webapp
 ./app.py
 ```
 (*Optional / Production*) Run with **gunicorn** and **gevent**.
@@ -38,7 +39,6 @@ The backend uses pymysql which is gevent friendly
 sudo pacman -S gunicorn
 sudo pacman -S python-gevent
 
-cd server
 gunicorn -k gevent -w 4 -b 127.0.0.1:5001 'app:create_app()'
 ```
 (*Alternative option*) Use **gthread** asynchronous worker class:
@@ -57,7 +57,7 @@ gunicorn --threads 5 -w 4 -b 127.0.0.1:5001 'app:create_app()'
 ### Run the worker daemon:
 Workers pull and run build jobs from queue.
 ```text
-cd server
+cd server/worker
 ./worker_daemon.py
 ```
 
