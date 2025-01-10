@@ -8,7 +8,7 @@ def _create_pool():
     # pymysqlpool.logger.setLevel('DEBUG')
     return pymysqlpool.ConnectionPool(host='127.0.0.1', port=3306,
                                       user='mysql', password='mysql',
-                                      db='builder', autocommit=False,
+                                      db='builder', autocommit=True,
                                       cursorclass=pymysql.cursors.DictCursor)
 
 
