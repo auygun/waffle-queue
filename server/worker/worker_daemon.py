@@ -128,9 +128,11 @@ class Worker:
     async def _start_build(self, *args):
         async with db.acquire():
             self._current_build = args[0][0]
-            print(f'Building: {self._current_build.id()}, {await self._current_build.branch()}, {await self._current_build.state()}')
-            await asyncio.sleep(5)
-            return 1
+            print(f'Starting build: {self._current_build.id()}, {await self._current_build.branch()}, {await self._current_build.state()}')
+            await self._log('INFO', f'Starting build! id: {self._current_build.id()}, branch: {await self._current_build.branch()}')
+            # await asyncio.sleep(5)
+            ret, _ = await self._run(["git", "log", "-n2"], cwd='/home/auygun/code/work')
+            return ret
 
     def _on_build_finished(self, result):
         self._build_finished_task.start(result)
@@ -138,19 +140,22 @@ class Worker:
 
     async def _build_finished(self, *args):
         result = args[0][0]
-        if result == 'CANCELED':
-            print(f"_build_finished: canceled")
-        else:
-            async with db.acquire():
+        async with db.acquire():
+            if result == 'CANCELED':
+                print(f"_build_finished: canceled")
+                await self._log('INFO', "Build canceled!")
+            else:
                 # 1020, "Record has changed since last read in table 'builds'"
                 await db.rollback()
                 try:
                     if result == 0:
-                        print(f"_build_finished: succeeded")
+                        print("_build_finished: succeeded")
                         await self._current_build.set_state('SUCCEEDED')
+                        await self._log('INFO', "Build succeeded!")
                     else:
                         print(f"_build_finished: failed")
                         await self._current_build.set_state('FAILED')
+                        await self._log('INFO', "Build failed!")
                 except OperationalError as e:
                     print(f'db error: {e.args}')
                 await db.commit()
@@ -159,6 +164,39 @@ class Worker:
     async def _reset_current_build(self):
         print("_reset_current_build()")
         self._current_build = None
+
+    async def _log(self, severity, message):
+        async with db.cursor() as cursor:
+            await cursor.execute("INSERT INTO logs (build_id, severity, message) VALUES (%s, %s, %s)",
+                                 (self._current_build.id(), severity, message))
+        await db.commit()
+
+    async def _run(self, cmd, cwd=None, env=None):
+        await self._log('TRACE', f"Run: '{' '.join(cmd)}'")
+        proc = await asyncio.create_subprocess_exec(
+            cmd[0],
+            *cmd[1:],
+            cwd=cwd,
+            env=env,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.STDOUT,
+            process_group=0
+        )
+        try:
+            stdout, _ = await proc.communicate()
+            for line in stdout.decode("latin-1").splitlines():
+                await self._log('TRACE', line)
+            await self._log('TRACE', f"Exit code: {proc.returncode}")
+            return proc.returncode, stdout
+        except asyncio.CancelledError:
+            async with db.acquire():
+                await self._log('TRACE', "Terminating")
+                try:
+                    proc.terminate()
+                    await proc.wait()
+                except ProcessLookupError:
+                    await self._log('TRACE', "Terminated")
+            raise
 
 
 class ShutdownHandler:

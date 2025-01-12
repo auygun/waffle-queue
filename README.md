@@ -27,7 +27,7 @@ sudo pacman -S python-aiomysql
 sudo pacman -S python-lazy-object-proxy
 
 cd server
-./sql_runner.py create_db.sql
+./sql_runner.py create_or_update_schema.sql
 
 cd webapp
 ./app.py
