@@ -5,6 +5,14 @@ import sys
 from pymysql.err import OperationalError
 import db_async as db
 import signal
+from async_path import AsyncPath
+import git
+
+
+class RunProcessError(Exception):
+    def __init__(self, returncode, output):
+        self.returncode = returncode
+        self.output = output
 
 
 class Entity:
@@ -130,9 +138,26 @@ class Worker:
             self._current_build = args[0][0]
             print(f'Starting build: {self._current_build.id()}, {await self._current_build.branch()}, {await self._current_build.state()}')
             await self._log('INFO', f'Starting build! id: {self._current_build.id()}, branch: {await self._current_build.branch()}')
-            # await asyncio.sleep(5)
-            ret, _ = await self._run(["git", "log", "-n2"], cwd='/home/auygun/code/work')
-            return ret
+
+            project_dir = await AsyncPath.home() / "worker"
+            work_tree_dir = project_dir / "work_tree"
+            await work_tree_dir.mkdir(parents=True, exist_ok=True)
+            git_dir = project_dir / "git"
+
+            try:
+                if await (git_dir / "config").exists():
+                    await self._set_remote(git_dir, "origin", "https://github.com/auygun/kaliber.git")
+                else:
+                    await self._run(git.init(git_dir))
+                    await self._run(git.add_remote(git_dir, "origin", "https://github.com/auygun/kaliber.git"))
+                await self._run(git.fetch(git_dir, "origin", "master"))
+                await self._run(git.clean(git_dir, work_tree_dir))
+                await self._run(git.checkout(git_dir, work_tree_dir, "master"))
+            except RunProcessError as e:
+                print(e.output.splitlines()[-1])
+                return e.returncode
+
+            return 0
 
     def _on_build_finished(self, result):
         self._build_finished_task.start(result)
@@ -165,6 +190,20 @@ class Worker:
         print("_reset_current_build()")
         self._current_build = None
 
+    async def _set_remote(self, git_dir, name, url):
+        existing_url = None
+        _, remotes = await self._run(git.list_remotes(git_dir))
+        for existing_remote in remotes.splitlines():
+            remote_name, remote_url, _ = existing_remote.split()
+            if remote_name == name:
+                existing_url = remote_url
+                break
+
+        if existing_url is None:
+            await self._run(git.add_remote(git_dir, name, url))
+        elif existing_url != url:
+            await self._run(git.set_remote_url(git_dir, name, url))
+
     async def _log(self, severity, message):
         async with db.cursor() as cursor:
             await cursor.execute("INSERT INTO logs (build_id, severity, message) VALUES (%s, %s, %s)",
@@ -184,10 +223,13 @@ class Worker:
         )
         try:
             stdout, _ = await proc.communicate()
-            for line in stdout.decode("latin-1").splitlines():
+            output = stdout.decode("latin-1")
+            for line in output.splitlines():
                 await self._log('TRACE', line)
             await self._log('TRACE', f"Exit code: {proc.returncode}")
-            return proc.returncode, stdout
+            if proc.returncode:
+                raise RunProcessError(proc.returncode, output)
+            return proc.returncode, output
         except asyncio.CancelledError:
             async with db.acquire():
                 await self._log('TRACE', "Terminating")
