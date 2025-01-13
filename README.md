@@ -17,9 +17,14 @@ npm run dev
 
 ### Install requirements and run the backend:
 The following steps are for Arch Linux. Alternatively pip can be used in a
-Python virtual environment for the packages.
+Python Virtual Environment for the packages.
 ```text
 sudo pacman -S mariadb
+sudo mariadb-install-db --user=mysql --basedir=/usr --datadir=/var/lib/mysql
+sudo systemctl start mariadb.service
+sudo mariadb
+> ALTER USER 'mysql'@'localhost' IDENTIFIED BY 'mysql';
+> CREATE DATABASE waffle_queue;
 
 sudo pacman -S python-flask
 sudo pacman -S python-pymysql
@@ -34,28 +39,31 @@ cd webapp
 ```
 (*Optional / Production*) Run with **gunicorn** and **gevent**.
 The backend uses pymysql which is gevent friendly
-(automatically gets monkey-patched)
+(automatically gets monkey-patched).
 ```text
 sudo pacman -S gunicorn
 sudo pacman -S python-gevent
 
 gunicorn -k gevent -w 4 -b 127.0.0.1:5001 'app:create_app()'
 ```
-(*Alternative option*) Use **gthread** asynchronous worker class:
+(*Alternative option*) Use **gthread** asynchronous worker class.
 ```
 gunicorn --threads 5 -w 4 -b 127.0.0.1:5001 'app:create_app()'
 ```
-(*Optional / Production*) Put gunicorn behind a **nginx** HTTP proxy server:
+(*Optional / Production*) Put gunicorn behind a **nginx** HTTP proxy server.
 ```text
+server {
     location /api/v1/ {
         proxy_pass http://127.0.0.1:5001;
         proxy_set_header Host $host;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
     }
+    ...
+}
 ```
 
-### Run the worker daemon:
-Workers pull and run build jobs from queue.
+### Run a worker daemon:
+Workers pull and run jobs from queue.
 ```text
 cd server/worker
 ./worker_daemon.py

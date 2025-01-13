@@ -5,7 +5,7 @@ import os
 import subprocess
 
 _config = {
-    'database': 'builder',
+    'database': 'waffle_queue',
     'host': '127.0.0.1',
     'port': '3306',
     'user': 'mysql',

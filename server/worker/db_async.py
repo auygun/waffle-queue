@@ -39,7 +39,7 @@ async def open():
     global _pool
     _pool = await aiomysql.create_pool(host='127.0.0.1', port=3306,
                                        user='mysql', password='mysql',
-                                       db='builder', autocommit=False)
+                                       db='waffle_queue', autocommit=False)
 
 
 async def close():
