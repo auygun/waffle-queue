@@ -37,7 +37,8 @@ class Worker:
             # 1020, "Record has changed since last read in table 'builds'"
             await db.rollback()
 
-            if self._current_build is not None and self._current_build_task.running():
+            if (self._current_build is not None and
+                    self._current_build_task.running()):
                 state = await self._current_build.state()
                 if state is None or state == 'ABORTED':
                     await self._current_build_task.cancel()
@@ -58,8 +59,14 @@ class Worker:
     async def _start_build(self, *args):
         async with db.acquire():
             self._current_build = args[0][0]
-            print(f'Starting build: {self._current_build.id()}, {await self._current_build.branch()}, {await self._current_build.state()}')
-            await self._log('INFO', f'Starting build! id: {self._current_build.id()}, branch: {await self._current_build.branch()}')
+            print("Starting build: "
+                  f"{self._current_build.id()}, "
+                  f"{await self._current_build.branch()}, "
+                  f"{await self._current_build.state()}")
+            await self._log('INFO',
+                            "Starting build! id: "
+                            f"{self._current_build.id()}, "
+                            f"branch: {await self._current_build.branch()}")
 
             project_dir = await AsyncPath.home() / "worker"
             work_tree_dir = project_dir / "work_tree"

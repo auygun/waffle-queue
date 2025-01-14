@@ -1,5 +1,4 @@
 import asyncio
-from logger import Logger
 import db_async as db
 
 
