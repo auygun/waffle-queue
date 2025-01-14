@@ -6,7 +6,7 @@ import sys
 from pymysql.err import OperationalError
 
 import db_async as db
-import git
+from git import Git
 from async_path import AsyncPath
 from task import Task
 from build import Build
@@ -23,6 +23,7 @@ class Worker:
         self._build_finished_task = Task(task_group, self._build_finished)
         self._logger = Logger(self.get_current_build_id)
         self._runner = Runner(self._logger)
+        self._git = Git(self._runner)
 
     def get_current_build_id(self):
         if self._current_build is not None:
@@ -66,14 +67,13 @@ class Worker:
             git_dir = project_dir / "git"
 
             try:
-                if await (git_dir / "config").exists():
-                    await self._set_remote(git_dir, "origin", "https://github.com/auygun/kaliber.git")
-                else:
-                    await self._run(git.init(git_dir))
-                    await self._run(git.add_remote(git_dir, "origin", "https://github.com/auygun/kaliber.git"))
-                await self._run(git.fetch(git_dir, "origin", "master"))
-                await self._run(git.clean(git_dir, work_tree_dir))
-                await self._run(git.checkout(git_dir, work_tree_dir, "origin/master"))
+                await self._git.init_or_update(git_dir, "origin",
+                                               "https://github.com/auygun/"
+                                               "kaliber.git")
+                await self._git.fetch(git_dir, "origin", "master")
+                await self._git.clean(git_dir, work_tree_dir)
+                await self._git.checkout(git_dir, work_tree_dir,
+                                         "origin/master")
             except RunProcessError as e:
                 print(e.output.splitlines()[-1])
                 return e.returncode
@@ -110,23 +110,6 @@ class Worker:
     async def _reset_current_build(self):
         print("_reset_current_build()")
         self._current_build = None
-
-    async def _set_remote(self, git_dir, name, url):
-        existing_url = None
-        _, remotes = await self._run(git.list_remotes(git_dir))
-        for existing_remote in remotes.splitlines():
-            remote_name, remote_url, _ = existing_remote.split()
-            if remote_name == name:
-                existing_url = remote_url
-                break
-
-        if existing_url is None:
-            await self._run(git.add_remote(git_dir, name, url))
-        elif existing_url != url:
-            await self._run(git.set_remote_url(git_dir, name, url))
-
-    async def _run(self, cmd):
-        return await self._runner.run(cmd)
 
     async def _log(self, severity, message):
         if self._logger is not None:

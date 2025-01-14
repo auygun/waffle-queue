@@ -1,84 +1,99 @@
-def add_remote(git_dir, remote, url):
-    return [
-        "git",
-        f"--git-dir={git_dir}",
-        "remote",
-        "add",
-        remote, url
-    ]
+class Git:
+    def __init__(self, runner):
+        self._runner = runner
 
+    async def init_or_update(self, git_dir, name, url):
+        if await (git_dir / "config").exists():
+            existing_url = None
+            _, remotes = await self.list_remotes(git_dir)
+            for existing_remote in remotes.splitlines():
+                remote_name, remote_url, _ = existing_remote.split()
+                if remote_name == name:
+                    existing_url = remote_url
+                    break
 
-def set_remote_url(git_dir, remote, url):
-    return [
-        "git",
-        f"--git-dir={git_dir}",
-        "remote",
-        "set-url",
-        remote, url
-    ]
+            if existing_url is None:
+                await self.add_remote(git_dir, name, url)
+            elif existing_url != url:
+                await self.set_remote(git_dir, name, url)
+        else:
+            await self.init(git_dir)
+            await self.add_remote(git_dir, name, url)
 
+    async def add_remote(self, git_dir, remote, url):
+        return await self._runner.run([
+            "git",
+            f"--git-dir={git_dir}",
+            "remote",
+            "add",
+            remote, url
+        ])
 
-def list_remotes(git_dir):
-    return [
-        "git",
-        f"--git-dir={git_dir}",
-        "remote",
-        "-v"
-    ]
+    async def set_remote(self, git_dir, remote, url):
+        return await self._runner.run([
+            "git",
+            f"--git-dir={git_dir}",
+            "remote",
+            "set-url",
+            remote, url
+        ])
 
+    async def list_remotes(self, git_dir):
+        return await self._runner.run([
+            "git",
+            f"--git-dir={git_dir}",
+            "remote",
+            "-v"
+        ])
 
-def fetch(git_dir, remote, refspec, recurse_submodules=None):
-    options = []
-    if recurse_submodules is not None:
-        options.append(f"--recurse-submodules={recurse_submodules}")
-    cmd = [
-        "git",
-        f"--git-dir={git_dir}",
-        "fetch",
-        "-f",
-        "-n",
-        "-p",
-        "-P"
-    ]
-    return cmd + options + [remote, refspec]
+    async def fetch(self, git_dir, remote, refspec, recurse_submodules=None):
+        options = []
+        if recurse_submodules is not None:
+            options.append(f"--recurse-submodules={recurse_submodules}")
+        cmd = [
+            "git",
+            f"--git-dir={git_dir}",
+            "fetch",
+            "-f",
+            "-n",
+            "-p",
+            "-P"
+        ]
+        return await self._runner.run(cmd + options + [remote, refspec])
 
+    async def init(self, git_dir):
+        return await self._runner.run([
+            "git",
+            f"--git-dir={git_dir}",
+            "init"
+        ])
 
-def init(git_dir):
-    return [
-        "git",
-        f"--git-dir={git_dir}",
-        "init"
-    ]
+    async def clean(self, git_dir, work_tree):
+        return await self._runner.run([
+            "git",
+            f"--git-dir={git_dir}",
+            f"--work-tree={work_tree}",
+            "clean",
+            "-dffqx"
+        ])
 
+    async def checkout(self, git_dir, work_tree, refspec):
+        return await self._runner.run([
+            "git",
+            f"--git-dir={git_dir}",
+            f"--work-tree={work_tree}",
+            "checkout",
+            "--force",
+            "--detach",
+            refspec
+        ])
 
-def clean(git_dir, work_tree):
-    return [
-        "git",
-        f"--git-dir={git_dir}",
-        f"--work-tree={work_tree}",
-        "clean",
-        "-dffqx"
-    ]
-
-
-def checkout(git_dir, work_tree, refspec):
-    return [
-        "git",
-        f"--git-dir={git_dir}",
-        f"--work-tree={work_tree}",
-        "checkout",
-        "--force",
-        "--detach",
-        refspec
-    ]
-
-
-def last_commit_timestamp(git_dir):
-    return [
-        "git",
-        f"--git-dir={git_dir}",
-        "log",
-        "-n",
-        "1",
-        "--format=%ct"
-    ]
+    async def last_commit_timestamp(self, git_dir):
+        return await self._runner.run([
+            "git",
+            f"--git-dir={git_dir}",
+            "log",
+            "-n",
+            "1",
+            "--format=%ct"
+        ])
