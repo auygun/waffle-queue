@@ -79,4 +79,5 @@ cd server/worker
 [aiomysql](https://github.com/aio-libs/aiomysql),
 [pymysql](https://github.com/PyMySQL/PyMySQL),
 [pymysql-pool](https://github.com/jkklee/pymysql-pool),
+[lazy-object-proxy](https://github.com/ionelmc/python-lazy-object-proxy),
 [mariadb](https://github.com/MariaDB/server)
