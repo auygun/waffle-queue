@@ -34,13 +34,19 @@ class Runner:
             return proc.returncode, output
         except asyncio.CancelledError:
             async with db.acquire():
-                await self._log('TRACE', "Terminating")
+                await self._log('TRACE', f"Terminating {cmd[0]}")
                 try:
                     proc.terminate()
-                    await proc.wait()
+                    try:
+                        await asyncio.wait_for(proc.wait(), timeout=10)
+                    except TimeoutError:
+                        proc.kill()
+                        await self._log('TRACE', "Killed")
                 except ProcessLookupError:
-                    await self._log('TRACE', "Terminated")
+                    pass
             raise
+        finally:
+            await proc.communicate()
 
     async def _log(self, severity, message):
         if self._logger is not None:
