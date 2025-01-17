@@ -4,10 +4,10 @@ import asyncio
 import signal
 import sys
 from pymysql.err import OperationalError
+from pathlib import Path
 
 import db_async as db
 from git import Git
-from async_path import AsyncPath
 from task import Task
 from build import Build
 from runner import Runner
@@ -68,9 +68,9 @@ class Worker:
                             f"{self._current_build.id()}, "
                             f"branch: {await self._current_build.branch()}")
 
-            project_dir = await AsyncPath.home() / "worker"
+            project_dir = Path.home() / "worker"
             work_tree_dir = project_dir / "work_tree"
-            await work_tree_dir.mkdir(parents=True, exist_ok=True)
+            work_tree_dir.mkdir(parents=True, exist_ok=True)
             git_dir = project_dir / "git"
 
             try:

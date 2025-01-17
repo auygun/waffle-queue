@@ -3,7 +3,7 @@ class Git:
         self._runner = runner
 
     async def init_or_update(self, git_dir, name, url):
-        if await (git_dir / "config").exists():
+        if (git_dir / "config").exists():
             existing_url = None
             remotes = await self.list_remotes(git_dir)
             for existing_remote in remotes.splitlines():
