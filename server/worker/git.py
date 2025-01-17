@@ -1,3 +1,6 @@
+import re
+
+
 class Git:
     def __init__(self, runner):
         self._runner = runner
@@ -15,7 +18,7 @@ class Git:
             if existing_url is None:
                 await self.add_remote(git_dir, name, url)
             elif existing_url != url:
-                await self.set_remote(git_dir, name, url)
+                await self.set_remote_url(git_dir, name, url)
         else:
             await self.init(git_dir)
             await self.add_remote(git_dir, name, url)
@@ -29,7 +32,7 @@ class Git:
             remote, url
         ])
 
-    async def set_remote(self, git_dir, remote, url):
+    async def set_remote_url(self, git_dir, remote, url):
         return await self._runner.run([
             "git",
             f"--git-dir={git_dir}",
@@ -46,7 +49,7 @@ class Git:
             "-v"
         ])
 
-    async def fetch(self, git_dir, remote, refspec, recurse_submodules=None):
+    async def fetch(self, git_dir, remote, refspec, recurse_submodules="no"):
         options = []
         if recurse_submodules is not None:
             options.append(f"--recurse-submodules={recurse_submodules}")
@@ -97,3 +100,61 @@ class Git:
             "1",
             "--format=%ct"
         ])
+
+    async def init_submodules(self, git_dir, work_tree):
+        await self.unregister_submodules(git_dir)
+
+        output = await self._runner.run(
+            [
+                "git",
+                f"--git-dir={git_dir}",
+                f"--work-tree={work_tree}",
+                "submodule",
+                "init"
+            ], cwd=work_tree)
+        submodule_list = re.findall(
+            r"'([^']*)'\s*\(([^)]*)\).*?'([^']*)'", output)
+        submodules = {}
+        for sm in submodule_list:
+            submodules[sm[2]] = list(sm[1:2])
+
+        status = await self.submodule_status(git_dir, work_tree)
+        for s in status:
+            submodules[s[1]].append(s[0])
+
+        return submodules
+
+    async def unregister_submodules(self, git_dir):
+        output = await self._runner.run(
+            [
+                "git",
+                f"--git-dir={git_dir}",
+                "config",
+                "list",
+                "--name-only"
+            ])
+        for line in output.splitlines():
+            if line.startswith("submodule."):
+                await self._runner.run(
+                    [
+                        "git",
+                        f"--git-dir={git_dir}",
+                        "config",
+                        "unset",
+                        line
+                    ])
+
+    async def submodule_status(self, git_dir, work_tree):
+        output = (await self._runner.run([
+            "git",
+            f"--git-dir={git_dir}",
+            f"--work-tree={work_tree}",
+            "submodule",
+            "status",
+            "--cached"
+        ], cwd=work_tree)).splitlines()
+        submodules = []
+        for line in output:
+            submodules.append(line.split())
+            submodules[-1][0] = submodules[-1][0][1:]
+        return submodules

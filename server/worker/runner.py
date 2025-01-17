@@ -12,8 +12,8 @@ class Runner:
     def __init__(self, logger=None):
         self._logger = logger
 
-    async def run(self, cmd, cwd=None, env=None, output=None):
-        await self._log('TRACE', f"Run: '{' '.join(cmd)}'")
+    async def run(self, cmd, cwd=None, env=None, output=None, decode="latin-1"):
+        await self._log('INFO', f"Run: '{' '.join(cmd)}'")
 
         stdout = asyncio.subprocess.PIPE if output is None else output
         proc = await asyncio.create_subprocess_exec(
@@ -29,20 +29,21 @@ class Runner:
         try:
             if stdout == asyncio.subprocess.PIPE:
                 output, _ = await proc.communicate()
-                output = output.decode("latin-1")
                 for line in output.splitlines():
                     await self._log('TRACE', line)
+                if decode is not None:
+                    output = output.decode("latin-1")
             else:
                 await proc.wait()
                 output = None
 
-            await self._log('TRACE', f"Exit code: {proc.returncode}")
+            await self._log('INFO', f"Exit code: {proc.returncode}")
             if proc.returncode:
                 raise RunProcessError(proc.returncode, output)
             return output
         except asyncio.CancelledError:
             async with db.acquire():
-                await self._log('TRACE', f"Terminating {cmd[0]}")
+                await self._log('INFO', f"Terminating {cmd[0]}")
                 try:
                     proc.terminate()
                     try:

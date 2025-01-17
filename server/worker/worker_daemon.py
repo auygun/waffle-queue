@@ -5,6 +5,7 @@ import signal
 import sys
 from pymysql.err import OperationalError
 from pathlib import Path
+from collections import deque
 
 import db_async as db
 from git import Git
@@ -68,24 +69,53 @@ class Worker:
                             f"{self._current_build.id()}, "
                             f"branch: {await self._current_build.branch()}")
 
-            project_dir = Path.home() / "worker"
-            work_tree_dir = project_dir / "work_tree"
-            work_tree_dir.mkdir(parents=True, exist_ok=True)
-            git_dir = project_dir / "git"
+            project_dir = Path.home() / "waffle_worker" / "proj"
+            modules = deque([[
+                Path("."),                           # git_dir
+                Path("."),                           # work_tree
+                "/home/auygun/code/proj2/proj.git",  # remote url
+                "origin/" + "master"                 # refspec
+            ]])
 
-            try:
-                await self._git.init_or_update(git_dir, "origin",
-                                               "https://github.com/auygun/"
-                                               "kaliber.git")
-                await self._git.fetch(git_dir, "origin", "master")
-                await self._git.clean(git_dir, work_tree_dir)
-                await self._git.checkout(git_dir, work_tree_dir,
-                                         "origin/master")
-            except RunProcessError as e:
-                print(e.output.splitlines()[-1])
-                return e.returncode
+            while True:
+                try:
+                    module = modules.popleft()
+                    print(module)
+                    submodules = await self.prepare_module(project_dir, *module)
+                    for sm in submodules:
+                        modules.append(sm)
+                except RunProcessError as e:
+                    print(e.output.splitlines()[-1])
+                    return e.returncode
+                except IndexError:
+                    break
+
+            # await self._runner.run(["python3", "build.py"],
+            #                        cwd=work_tree_dir)
 
             return 0
+
+    async def prepare_module(self, project_dir, git_dir, work_tree,
+                             remote_url, commit_or_branch):
+        abs_work_tree = project_dir / "work_tree" / work_tree
+        abs_work_tree.mkdir(parents=True, exist_ok=True)
+        abs_git_dir = project_dir / "git" / git_dir
+        abs_git_dir.mkdir(parents=True, exist_ok=True)
+
+        await self._git.init_or_update(abs_git_dir, "origin", remote_url)
+        await self._git.fetch(abs_git_dir, "origin",
+                              commit_or_branch.split("/")[-1])
+        await self._git.checkout(abs_git_dir, abs_work_tree, commit_or_branch)
+        await self._git.clean(abs_git_dir, abs_work_tree)
+        output = await self._git.init_submodules(abs_git_dir, abs_work_tree)
+
+        submodules = []
+        for sm in output.items():
+            submodules.append([git_dir / "modules" / sm[0],
+                               work_tree / sm[0],
+                               sm[1][0],
+                               sm[1][1]])
+        return submodules
 
     def _on_build_finished(self, result):
         self._build_finished_task.start(result)
