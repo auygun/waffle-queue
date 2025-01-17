@@ -31,7 +31,7 @@ class Runner:
             await self._log('TRACE', f"Exit code: {proc.returncode}")
             if proc.returncode:
                 raise RunProcessError(proc.returncode, output)
-            return proc.returncode, output
+            return output
         except asyncio.CancelledError:
             async with db.acquire():
                 await self._log('TRACE', f"Terminating {cmd[0]}")
