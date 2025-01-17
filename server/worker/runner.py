@@ -12,22 +12,30 @@ class Runner:
     def __init__(self, logger=None):
         self._logger = logger
 
-    async def run(self, cmd, cwd=None, env=None):
+    async def run(self, cmd, cwd=None, env=None, output=None):
         await self._log('TRACE', f"Run: '{' '.join(cmd)}'")
+
+        stdout = asyncio.subprocess.PIPE if output is None else output
         proc = await asyncio.create_subprocess_exec(
             cmd[0],
             *cmd[1:],
             cwd=cwd,
             env=env,
-            stdout=asyncio.subprocess.PIPE,
+            stdout=stdout,
             stderr=asyncio.subprocess.STDOUT,
             process_group=0
         )
+
         try:
-            stdout, _ = await proc.communicate()
-            output = stdout.decode("latin-1")
-            for line in output.splitlines():
-                await self._log('TRACE', line)
+            if stdout == asyncio.subprocess.PIPE:
+                output, _ = await proc.communicate()
+                output = output.decode("latin-1")
+                for line in output.splitlines():
+                    await self._log('TRACE', line)
+            else:
+                await proc.wait()
+                output = None
+
             await self._log('TRACE', f"Exit code: {proc.returncode}")
             if proc.returncode:
                 raise RunProcessError(proc.returncode, output)
@@ -41,7 +49,7 @@ class Runner:
                         await asyncio.wait_for(proc.wait(), timeout=10)
                     except TimeoutError:
                         proc.kill()
-                        await self._log('TRACE', "Killed")
+                        await self._log('WARNING', f"Killed {cmd[0]}")
                 except ProcessLookupError:
                     pass
             raise
