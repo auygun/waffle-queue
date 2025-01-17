@@ -68,10 +68,11 @@ class Worker:
                             f"{self._current_build.id()}, "
                             f"branch: {await self._current_build.branch()}")
 
-            project_dir = Path.home() / "worker"
-            work_tree_dir = project_dir / "work_tree"
+            worker_dir = Path.home() / "worker"
+            git_dir = worker_dir / "git"
+            work_tree_dir = worker_dir / "work_tree"
             work_tree_dir.mkdir(parents=True, exist_ok=True)
-            git_dir = project_dir / "git"
+            build_script = Path("build") / "build.py"
 
             try:
                 await self._git.init_or_update(git_dir, "origin",
@@ -81,6 +82,8 @@ class Worker:
                 await self._git.clean(git_dir, work_tree_dir)
                 await self._git.checkout(git_dir, work_tree_dir,
                                          "origin/master")
+                await self._runner.run(["python3", build_script.as_posix()],
+                                       cwd=work_tree_dir)
             except RunProcessError as e:
                 print(e.output.splitlines()[-1])
                 return e.returncode
