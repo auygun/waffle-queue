@@ -8,6 +8,7 @@ class RunProcessError(Exception):
         self.output = output
 
 
+# pylint:disable = too-few-public-methods
 class Runner:
     def __init__(self, logger=None):
         self._logger = logger

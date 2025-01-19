@@ -3,10 +3,10 @@
 import asyncio
 import signal
 import sys
-from pymysql.err import OperationalError
 from pathlib import Path
 from collections import deque
 
+from pymysql.err import OperationalError
 import db_async as db
 from git import Git
 from task import Task
@@ -29,14 +29,14 @@ class Worker:
     def get_current_build_id(self):
         if self._current_build is not None:
             return self._current_build.id()
+        return None
 
     async def shutdown(self):
         await self._current_build_task.cancel()
 
     async def update(self):
         async with db.acquire():
-            # 1020, "Record has changed since last read in table 'builds'"
-            await db.rollback()
+            await db.commit()  # Needed for query to be up-to-date
 
             if (self._current_build is not None and
                     self._current_build_task.running()):
@@ -69,7 +69,6 @@ class Worker:
                             f"{self._current_build.id()}, "
                             f"branch: {await self._current_build.branch()}")
 
-            project_dir = Path.home() / "waffle_worker" / "proj"
             modules = deque([[
                 Path("."),                           # git_dir
                 Path("."),                           # work_tree
@@ -81,7 +80,7 @@ class Worker:
                 try:
                     module = modules.popleft()
                     print(module)
-                    submodules = await self.prepare_module(project_dir, *module)
+                    submodules = await self.prepare_module(*module)
                     for sm in submodules:
                         modules.append(sm)
                 except RunProcessError as e:
@@ -95,8 +94,9 @@ class Worker:
 
             return 0
 
-    async def prepare_module(self, project_dir, git_dir, work_tree,
-                             remote_url, commit_or_branch):
+    async def prepare_module(self, git_dir, work_tree, remote_url,
+                             commit_or_branch):
+        project_dir = Path.home() / "waffle_worker" / "proj"
         abs_work_tree = project_dir / "work_tree" / work_tree
         abs_work_tree.mkdir(parents=True, exist_ok=True)
         abs_git_dir = project_dir / "git" / git_dir
@@ -119,24 +119,22 @@ class Worker:
 
     def _on_build_finished(self, result):
         self._build_finished_task.start(result)
-        pass
 
     async def _build_finished(self, *args):
         result = args[0][0]
         async with db.acquire():
             if result == 'CANCELED':
-                print(f"_build_finished: canceled")
+                print("Build canceled!")
                 await self._log('INFO', "Build canceled!")
             else:
-                # 1020, "Record has changed since last read in table 'builds'"
-                await db.rollback()
+                await db.commit()  # Needed for query to be up-to-date
                 try:
                     if result == 0:
-                        print("_build_finished: succeeded")
+                        print("Build Succeeded!")
                         await self._current_build.set_state('SUCCEEDED')
                         await self._log('INFO', "Build succeeded!")
                     else:
-                        print(f"_build_finished: failed")
+                        print("Build failed!")
                         await self._current_build.set_state('FAILED')
                         await self._log('INFO', "Build failed!")
                 except OperationalError as e:
@@ -145,7 +143,6 @@ class Worker:
         await self._reset_current_build()
 
     async def _reset_current_build(self):
-        print("_reset_current_build()")
         self._current_build = None
 
     async def _log(self, severity, message):
@@ -159,6 +156,7 @@ class ShutdownHandler:
         signal.signal(signal.SIGINT, self.signal_caught)
         signal.signal(signal.SIGTERM, self.signal_caught)
 
+    # pylint:disable = unused-argument
     def signal_caught(self, *args):
         self.shutdown_gracefully("Signal caught")
 
@@ -175,7 +173,7 @@ async def _main():
 
         while not shutdown.shutdown:
             try:
-                await db.open()
+                await db.open_db()
             except OperationalError:
                 await asyncio.sleep(5)
                 continue
@@ -190,7 +188,7 @@ async def _main():
                 await asyncio.sleep(1)
 
         await worker.shutdown()
-    await db.close()
+    await db.close_db()
 
 
 def _run():

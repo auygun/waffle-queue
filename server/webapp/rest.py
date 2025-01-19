@@ -25,16 +25,18 @@ def integrate():
     if branch == "":
         return abort(400)
     with db.connection() as conn, conn.cursor() as cursor:
-        cursor.execute(
-            'INSERT INTO builds (branch, state) VALUES (%s, %s)', (branch, 'REQUESTED'))
+        cursor.execute("INSERT INTO builds (branch, state) "
+                       "VALUES (%s, %s)", (branch, 'REQUESTED'))
     return {}
 
 
 @bp.route("/abort/<build_id>", methods=["POST"])
-def abort(build_id):
+def abort_build(build_id):
     with db.connection() as conn, conn.cursor() as cursor:
-        cursor.execute("UPDATE builds SET state = CASE WHEN (state='REQUESTED' OR state='BUILDING') THEN 'ABORTED' ELSE state END WHERE id=%s",
-                       (build_id))
+        cursor.execute("UPDATE builds SET state = CASE "
+                       "WHEN (state='REQUESTED' OR state='BUILDING') "
+                       "THEN 'ABORTED' ELSE state "
+                       "END WHERE id=%s", (build_id))
     return {}
 
 

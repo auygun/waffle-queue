@@ -1,6 +1,7 @@
 import db_async as db
 
 
+# pylint:disable = too-few-public-methods
 class Logger:
     def __init__(self, build_id_cb):
         self._build_id_cb = build_id_cb

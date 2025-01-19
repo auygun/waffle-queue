@@ -18,14 +18,13 @@ class Build(Entity):
         # building.
         build = None
         async with db.cursor() as cursor:
-            id = await cursor.execute("SELECT id FROM builds "
-                                      "WHERE state='REQUESTED' "
-                                      "ORDER BY id "
-                                      "FOR UPDATE "
-                                      "SKIP LOCKED")
-            id = await cursor.fetchone()
-            if id is not None:
-                build = Build(id[0])
+            build_ids = await cursor.execute("SELECT id FROM builds "
+                                             "WHERE state='REQUESTED' "
+                                             "ORDER BY id "
+                                             "FOR UPDATE SKIP LOCKED")
+            build_ids = await cursor.fetchone()
+            if build_ids is not None:
+                build = Build(build_ids[0])
                 await build.set_state('BUILDING')
             await db.commit()
         return build

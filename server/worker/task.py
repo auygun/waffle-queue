@@ -31,7 +31,7 @@ class Task:
         if self._done_cb:
             try:
                 result = task.result()
-            except asyncio.CancelledError as e:
+            except asyncio.CancelledError:
                 self._done_cb('CANCELED')
             else:
                 self._done_cb(result)

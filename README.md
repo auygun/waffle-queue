@@ -66,7 +66,7 @@ server {
 Workers pull and run jobs from queue.
 ```text
 cd server/worker
-./worker_daemon.py
+./worker.py
 ```
 
 ## Third-party software:

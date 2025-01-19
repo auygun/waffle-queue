@@ -1,7 +1,8 @@
-import aiomysql
 import contextvars
+import aiomysql
 
 
+# pylint:disable = invalid-name
 _pool = None
 _current_conn = contextvars.ContextVar('connection')
 
@@ -23,18 +24,16 @@ class PoolAcquireAndStoreContextManager:
         self._token = None
 
     async def __aenter__(self):
-        global _current_conn
         conn = await self._man.__aenter__()
         self._token = _current_conn.set(conn)
         return conn
 
     async def __aexit__(self, exc_type, exc, tb):
-        global _current_conn
         _current_conn.reset(self._token)
         await self._man.__aexit__(exc_type, exc, tb)
 
 
-async def open():
+async def open_db():
     print("Opening db")
     global _pool
     _pool = await aiomysql.create_pool(host='127.0.0.1', port=3306,
@@ -42,7 +41,7 @@ async def open():
                                        db='waffle_queue', autocommit=False)
 
 
-async def close():
+async def close_db():
     global _pool
     if _pool is not None:
         print("Closing db")

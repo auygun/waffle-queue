@@ -1,6 +1,6 @@
 class Entity:
-    def __init__(self, id):
-        self._id = id
+    def __init__(self, id_):
+        self._id = id_
 
     def __eq__(self, other):
         return isinstance(other, Entity) and self._id == other._id

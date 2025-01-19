@@ -2,7 +2,6 @@
 
 import os
 from flask import Flask
-import db
 import rest
 
 
