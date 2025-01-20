@@ -4,6 +4,7 @@
   "--disable=c0115",
   "--disable=c0116",
   "--disable=w0603",
+  "--disbale=r0912"
   "--disbale=r0913"
 ]
 }

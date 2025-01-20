@@ -2,58 +2,71 @@ import asyncio
 import db_async as db
 
 
+PIPE = asyncio.subprocess.PIPE
+
+
 class RunProcessError(Exception):
     def __init__(self, returncode, output):
         self.returncode = returncode
         self.output = output
 
 
-# pylint:disable = too-few-public-methods
-class Runner:
-    def __init__(self, logger=None):
-        self._logger = logger
+async def run(cmd, cwd=None, env=None, output=None, encoding="utf-8",
+              logger=None):
+    if logger is not None:
+        await logger.log('INFO', f"Run: '{' '.join(cmd)}'")
 
-    async def run(self, cmd, cwd=None, env=None, stdout=asyncio.subprocess.PIPE,
-                  encoding="utf-8"):
-        await self._log('INFO', f"Run: '{' '.join(cmd)}'")
-        proc = await asyncio.create_subprocess_exec(
-            cmd[0], *cmd[1:],
-            cwd=cwd, env=env,
-            stdout=stdout,
-            stderr=asyncio.subprocess.STDOUT if stdout is not None else None,
-            process_group=0)
+    if output is None:
+        if logger is None:
+            stdout = asyncio.subprocess.DEVNULL
+            stderr = asyncio.subprocess.DEVNULL
+        else:
+            stdout = asyncio.subprocess.PIPE
+            stderr = asyncio.subprocess.STDOUT
+    else:
+        stdout = output
+        stderr = asyncio.subprocess.STDOUT
 
-        try:
-            if stdout == asyncio.subprocess.PIPE:
-                output, _ = await proc.communicate()
-                if encoding is not None:
-                    output = output.decode(encoding)
-                for line in output.splitlines():
-                    await self._log('TRACE', line)
-            else:
-                await proc.wait()
-                output = None
+    proc = await asyncio.create_subprocess_exec(
+        cmd[0], *cmd[1:],
+        cwd=cwd, env=env,
+        stdout=stdout,
+        stderr=stderr,
+        process_group=0)
 
-            await self._log('INFO', f"Exit code: {proc.returncode}")
-            if proc.returncode:
-                raise RunProcessError(proc.returncode, output)
-            return output
-        except asyncio.CancelledError:
-            async with db.acquire():
-                await self._log('INFO', f"Terminating {cmd[0]}")
+    try:
+        if stdout == asyncio.subprocess.PIPE:
+            stdout, _ = await proc.communicate()
+            if encoding is not None:
+                stdout = stdout.decode(encoding)
+            if logger is not None:
+                for line in stdout.splitlines():
+                    await logger.log('TRACE', line)
+                if output is None:
+                    stdout = None
+        else:
+            await proc.wait()
+            stdout = None
+
+        if logger is not None:
+            await logger.log('INFO', f"Exit code: {proc.returncode}")
+        if proc.returncode:
+            raise RunProcessError(proc.returncode, stdout)
+        return stdout
+    except asyncio.CancelledError:
+        async with db.acquire():
+            if logger is not None:
+                await logger.log('INFO', f"Terminating {cmd[0]}")
+            try:
+                proc.terminate()
                 try:
-                    proc.terminate()
-                    try:
-                        await asyncio.wait_for(proc.wait(), timeout=10)
-                    except TimeoutError:
-                        proc.kill()
-                        await self._log('WARNING', f"Killed {cmd[0]}")
-                except ProcessLookupError:
-                    pass
-            raise
-        finally:
-            await proc.communicate()
-
-    async def _log(self, severity, message):
-        if self._logger is not None:
-            await self._logger.log(severity, message)
+                    await asyncio.wait_for(proc.wait(), timeout=10)
+                except TimeoutError:
+                    proc.kill()
+                    if logger is not None:
+                        await logger.log('WARNING', f"Killed {cmd[0]}")
+            except ProcessLookupError:
+                pass
+        raise
+    finally:
+        await proc.communicate()

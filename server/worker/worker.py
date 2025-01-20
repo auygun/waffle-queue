@@ -8,11 +8,10 @@ from collections import deque
 
 from pymysql.err import OperationalError
 import db_async as db
-from git import Git
+import runner
+import git
 from task import Task
 from build import Build
-from runner import Runner
-from runner import RunProcessError
 from logger import Logger
 
 
@@ -23,8 +22,6 @@ class Worker:
             task_group, self._start_build, self._on_build_finished)
         self._build_finished_task = Task(task_group, self._build_finished)
         self._logger = Logger(self.get_current_build_id)
-        self._runner = Runner(self._logger)
-        self._git = Git(self._runner)
 
     def get_current_build_id(self):
         if self._current_build is not None:
@@ -97,9 +94,9 @@ class Worker:
                         modules.append(sm)
 
                 build_script = Path("build/build.py")
-                await self._runner.run(["python3", str(build_script)],
-                                       cwd=self.work_tree_root())
-            except RunProcessError as e:
+                await runner.run(["python3", str(build_script)],
+                                 cwd=self.work_tree_root(), logger=self._logger)
+            except runner.RunProcessError as e:
                 print(e.output.splitlines()[-1])
                 return e.returncode
 
@@ -112,12 +109,15 @@ class Worker:
         abs_git_dir = self.git_root() / git_dir
         abs_git_dir.mkdir(parents=True, exist_ok=True)
 
-        await self._git.init_or_update(abs_git_dir, "origin", remote_url)
-        await self._git.fetch(abs_git_dir, "origin",
-                              commit_or_branch.split("/")[-1])
-        await self._git.checkout(abs_git_dir, abs_work_tree, commit_or_branch)
-        await self._git.clean(abs_git_dir, abs_work_tree)
-        output = await self._git.init_submodules(abs_git_dir, abs_work_tree)
+        await git.init_or_update(abs_git_dir, "origin", remote_url,
+                                 logger=self._logger)
+        await git.fetch(abs_git_dir, "origin", commit_or_branch.split("/")[-1],
+                        logger=self._logger)
+        await git.checkout(abs_git_dir, abs_work_tree, commit_or_branch,
+                           logger=self._logger)
+        await git.clean(abs_git_dir, abs_work_tree, logger=self._logger)
+        output = await git.init_submodules(abs_git_dir, abs_work_tree,
+                                           logger=self._logger)
 
         submodules = []
         for sm in output.items():
