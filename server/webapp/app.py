@@ -3,12 +3,14 @@
 import os
 from flask import Flask
 import rest
+import db
 
 
 def create_app():
     app = Flask(__name__)
     app.json.sort_keys = False
     app.register_blueprint(rest.bp)
+    app.teardown_appcontext(db.recycle)
 
     @app.route('/ping', methods=['GET'])
     def ping_pong():

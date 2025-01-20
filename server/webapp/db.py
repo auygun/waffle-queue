@@ -3,6 +3,7 @@ import logging
 
 import lazy_object_proxy
 import pymysql
+from flask import g
 
 
 def _init_logger(level='WARNING'):
@@ -19,7 +20,7 @@ def _create_pool():
     _logger.setLevel('DEBUG')
     return ConnectionPool(host='127.0.0.1', port=3306,
                           user='mysql', password='mysql',
-                          db='waffle_queue', autocommit=True,
+                          db='waffle_queue', autocommit=False,
                           cursorclass=pymysql.cursors.DictCursor)
 
 
@@ -27,38 +28,23 @@ _logger = lazy_object_proxy.Proxy(_init_logger)
 _pool = lazy_object_proxy.Proxy(_create_pool)
 
 
-class ConnectionPoolFull(Exception):
-    """Cannot create new connection. The pool is full"""
+class CreateConnectionError(Exception):
+    """The connection pool is full"""
 
 
 class Connection(pymysql.connections.Connection):
-    """Context manager that returns a connection object back to the connection
-    pool in __exit__() method.
-    """
-
-    _pool = None
-
-    def __init__(self, pool, *args, **kwargs):
+    def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._pool = pool
         self._returned = False
 
-    def __enter__(self):
+    def _prepare(self):
+        self._returned = False
         if self._sock is None:
             _logger.debug("reconnecting")
             self.connect()
-        self._returned = False
-        return super().__enter__()
-
-    def __exit__(self, exc_type, exc_value, traceback):
-        self._pool._return_connection(self)
 
 
 class ConnectionPool:
-    """Keeps a pool of connections. Provides a method to get a connection from
-    the pool. Creates a new connection if the pool is empty.
-    """
-
     def __init__(self, max_size=1000, *args, **kwargs):
         self._pool = deque()
         self._num_connections = 0
@@ -66,10 +52,12 @@ class ConnectionPool:
         self._args = args
         self._kwargs = kwargs
 
-    def get_connection(self):
+    def _get_connection(self):
         _logger.debug(f"pool size: {len(self._pool)}")
         try:
-            return self._pool.popleft()
+            conn = self._pool.popleft()
+            conn._prepare()
+            return conn
         except IndexError:
             return self._create_connection()
 
@@ -77,8 +65,8 @@ class ConnectionPool:
         _logger.debug(f"_num_connections: {self._num_connections}")
         if self._num_connections < self._max_size:
             self._num_connections += 1
-            return Connection(self, *self._args, **self._kwargs)
-        raise ConnectionPoolFull()
+            return Connection(*self._args, **self._kwargs)
+        raise CreateConnectionError()
 
     def _return_connection(self, conn):
         _logger.debug(f"pool size: {len(self._pool)}")
@@ -88,10 +76,30 @@ class ConnectionPool:
 
 
 def connection():
-    return _pool.get_connection()
+    if '_conn' not in g:
+        g._conn = _pool._get_connection()
+    return g._conn
+
+
+def recycle(e=None):
+    conn = g.pop('_conn', None)
+    if conn is not None:
+        _pool._return_connection(conn)
+
+
+def cursor():
+    return connection().cursor()
+
+
+def commit():
+    return connection().commit()
+
+
+def rollback():
+    return connection().rollback()
 
 
 def now():
-    with connection() as conn, conn.cursor() as cursor:
+    with connection().cursor() as cursor:
         cursor.execute("SELECT NOW()")
         return cursor.next()[0]
