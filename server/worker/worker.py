@@ -31,6 +31,15 @@ class Worker:
             return self._current_build.id()
         return None
 
+    def project_dir(self):
+        return Path.home() / "waffle_worker" / "proj"
+
+    def git_root(self):
+        return self.project_dir() / "git"
+
+    def work_tree_root(self):
+        return self.project_dir() / "work_tree"
+
     async def shutdown(self):
         await self._current_build_task.cancel()
 
@@ -76,30 +85,31 @@ class Worker:
                 "origin/" + "master"                 # refspec
             ]])
 
-            while True:
-                try:
-                    module = modules.popleft()
+            try:
+                while True:
+                    try:
+                        module = modules.popleft()
+                    except IndexError:
+                        break
                     print(module)
                     submodules = await self.prepare_module(*module)
                     for sm in submodules:
                         modules.append(sm)
-                except RunProcessError as e:
-                    print(e.output.splitlines()[-1])
-                    return e.returncode
-                except IndexError:
-                    break
 
-            # await self._runner.run(["python3", "build.py"],
-            #                        cwd=work_tree_dir)
+                build_script = Path("build/build.py")
+                await self._runner.run(["python3", str(build_script)],
+                                       cwd=self.work_tree_root())
+            except RunProcessError as e:
+                print(e.output.splitlines()[-1])
+                return e.returncode
 
             return 0
 
     async def prepare_module(self, git_dir, work_tree, remote_url,
                              commit_or_branch):
-        project_dir = Path.home() / "waffle_worker" / "proj"
-        abs_work_tree = project_dir / "work_tree" / work_tree
+        abs_work_tree = self.work_tree_root() / work_tree
         abs_work_tree.mkdir(parents=True, exist_ok=True)
-        abs_git_dir = project_dir / "git" / git_dir
+        abs_git_dir = self.git_root() / git_dir
         abs_git_dir.mkdir(parents=True, exist_ok=True)
 
         await self._git.init_or_update(abs_git_dir, "origin", remote_url)
