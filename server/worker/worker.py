@@ -40,10 +40,9 @@ class Worker:
         await self._current_build_task.cancel()
 
     async def update(self):
-        db.commit()  # Needed for query to be up-to-date
-
         if (self._current_build is not None and
                 self._current_build_task.running()):
+            db.commit()  # Needed for query to be up-to-date
             state = self._current_build.state()
             if state is None or state == 'ABORTED':
                 await self._current_build_task.cancel()
@@ -61,10 +60,8 @@ class Worker:
         self._current_build = build_request
         print("Starting build: "
               f"{self._current_build.id()}, "
-              f"{self._current_build.branch()}, "
-              f"{self._current_build.state()}")
-        self._log('INFO',
-                  "Starting build! id: "
+              f"{self._current_build.branch()}")
+        self._log('INFO', "Starting build! id: "
                   f"{self._current_build.id()}, "
                   f"branch: {self._current_build.branch()}")
 
@@ -82,7 +79,7 @@ class Worker:
                 except IndexError:
                     break
                 print(module)
-                submodules = await self.prepare_module(*module)
+                submodules = await self._prepare_module(*module)
                 for sm in submodules:
                     modules.append(sm)
 
@@ -94,31 +91,6 @@ class Worker:
             return e.returncode
 
         return 0
-
-    async def prepare_module(self, git_dir, work_tree, remote_url,
-                             commit_or_branch):
-        abs_work_tree = self.work_tree_root() / work_tree
-        abs_work_tree.mkdir(parents=True, exist_ok=True)
-        abs_git_dir = self.git_root() / git_dir
-        abs_git_dir.mkdir(parents=True, exist_ok=True)
-
-        await git.init_or_update(abs_git_dir, "origin", remote_url,
-                                 logger=self._logger)
-        await git.fetch(abs_git_dir, "origin", commit_or_branch.split("/")[-1],
-                        logger=self._logger)
-        await git.checkout(abs_git_dir, abs_work_tree, commit_or_branch,
-                           logger=self._logger)
-        await git.clean(abs_git_dir, abs_work_tree, logger=self._logger)
-        output = await git.init_submodules(abs_git_dir, abs_work_tree,
-                                           logger=self._logger)
-
-        submodules = []
-        for sm in output.items():
-            submodules.append([git_dir / "modules" / sm[0],
-                               work_tree / sm[0],
-                               sm[1][0],
-                               sm[1][1]])
-        return submodules
 
     def _on_build_finished(self, result):
         if result == 'CANCELED':
@@ -142,6 +114,31 @@ class Worker:
 
     def _reset_current_build(self):
         self._current_build = None
+
+    async def _prepare_module(self, git_dir, work_tree, remote_url,
+                              commit_or_branch):
+        abs_work_tree = self.work_tree_root() / work_tree
+        abs_work_tree.mkdir(parents=True, exist_ok=True)
+        abs_git_dir = self.git_root() / git_dir
+        abs_git_dir.mkdir(parents=True, exist_ok=True)
+
+        await git.init_or_update(abs_git_dir, "origin", remote_url,
+                                 logger=self._logger)
+        await git.fetch(abs_git_dir, "origin", commit_or_branch.split("/")[-1],
+                        logger=self._logger)
+        await git.checkout(abs_git_dir, abs_work_tree, commit_or_branch,
+                           logger=self._logger)
+        await git.clean(abs_git_dir, abs_work_tree, logger=self._logger)
+        output = await git.init_submodules(abs_git_dir, abs_work_tree,
+                                           logger=self._logger)
+
+        submodules = []
+        for sm in output.items():
+            submodules.append([git_dir / "modules" / sm[0],
+                               work_tree / sm[0],
+                               sm[1][0],
+                               sm[1][1]])
+        return submodules
 
     def _log(self, severity, message):
         if self._logger is not None:
