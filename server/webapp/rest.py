@@ -11,6 +11,12 @@ def db_exception_handler(error):
     return 'Database connection failed', 500
 
 
+@bp.errorhandler(db.CreateConnectionError)
+def db_exception_handler(error):
+    print(error)
+    return 'Too many requests', 500
+
+
 @bp.after_request
 def add_cache_controls(response):
     response.cache_control.no_store = True
