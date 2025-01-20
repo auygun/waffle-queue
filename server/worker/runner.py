@@ -40,7 +40,7 @@ async def run(cmd, cwd=None, env=None, output=None, encoding="utf-8",
                 stdout = stdout.decode(encoding)
             if logger is not None:
                 for line in stdout.splitlines():
-                    logger.log('TRACE', line)
+                    logger.log('TRACE', line, commit=False)
                 if output is None:
                     stdout = None
         else:

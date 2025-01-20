@@ -72,7 +72,7 @@ class Worker:
             Path("."),                           # git_dir
             Path("."),                           # work_tree
             "/home/auygun/code/proj2/proj.git",  # remote url
-            "origin/" + "master"                 # refspec
+            "origin/" + "master"                 # branch
         ]])
 
         try:
@@ -125,7 +125,7 @@ class Worker:
             print("Build canceled!")
             self._log('INFO', "Build canceled!")
         else:
-            db.commit()  # Needed for query to be up-to-date
+            db.commit()
             try:
                 if result == 0:
                     print("Build Succeeded!")
@@ -136,7 +136,7 @@ class Worker:
                     self._current_build.set_state('FAILED')
                     self._log('INFO', "Build failed!")
             except OperationalError as e:
-                print(f'db error: {e.args}')
+                print(e)
             db.commit()
         self._reset_current_build()
 

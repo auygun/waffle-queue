@@ -17,6 +17,7 @@ class Build(Entity):
         # Fetch the next available build request from the queue and mark it as
         # building.
         build = None
+        db.commit()  # Start new transaction
         with db.cursor() as cursor:
             build_ids = cursor.execute("SELECT id FROM builds "
                                        "WHERE state='REQUESTED' "
@@ -26,7 +27,7 @@ class Build(Entity):
             if build_ids is not None:
                 build = Build(build_ids[0])
                 build.set_state('BUILDING')
-            db.commit()
+        db.commit()  # Release locks
         return build
 
     def _fetch(self, field):
