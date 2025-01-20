@@ -1,5 +1,4 @@
 import asyncio
-import db_async as db
 
 
 PIPE = asyncio.subprocess.PIPE
@@ -14,7 +13,7 @@ class RunProcessError(Exception):
 async def run(cmd, cwd=None, env=None, output=None, encoding="utf-8",
               logger=None):
     if logger is not None:
-        await logger.log('INFO', f"Run: '{' '.join(cmd)}'")
+        logger.log('INFO', f"Run: '{' '.join(cmd)}'")
 
     if output is None:
         if logger is None:
@@ -41,7 +40,7 @@ async def run(cmd, cwd=None, env=None, output=None, encoding="utf-8",
                 stdout = stdout.decode(encoding)
             if logger is not None:
                 for line in stdout.splitlines():
-                    await logger.log('TRACE', line)
+                    logger.log('TRACE', line)
                 if output is None:
                     stdout = None
         else:
@@ -49,24 +48,23 @@ async def run(cmd, cwd=None, env=None, output=None, encoding="utf-8",
             stdout = None
 
         if logger is not None:
-            await logger.log('INFO', f"Exit code: {proc.returncode}")
+            logger.log('INFO', f"Exit code: {proc.returncode}")
         if proc.returncode:
             raise RunProcessError(proc.returncode, stdout)
         return stdout
     except asyncio.CancelledError:
-        async with db.acquire():
-            if logger is not None:
-                await logger.log('INFO', f"Terminating {cmd[0]}")
+        if logger is not None:
+            logger.log('INFO', f"Terminating {cmd[0]}")
+        try:
+            proc.terminate()
             try:
-                proc.terminate()
-                try:
-                    await asyncio.wait_for(proc.wait(), timeout=10)
-                except TimeoutError:
-                    proc.kill()
-                    if logger is not None:
-                        await logger.log('WARNING', f"Killed {cmd[0]}")
-            except ProcessLookupError:
-                pass
+                await asyncio.wait_for(proc.wait(), timeout=10)
+            except TimeoutError:
+                proc.kill()
+                if logger is not None:
+                    logger.log('WARNING', f"Killed {cmd[0]}")
+        except ProcessLookupError:
+            pass
         raise
     finally:
         await proc.communicate()

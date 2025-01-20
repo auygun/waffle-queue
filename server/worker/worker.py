@@ -7,7 +7,7 @@ from pathlib import Path
 from collections import deque
 
 from pymysql.err import OperationalError
-import db_async as db
+import db
 import runner
 import git
 from task import Task
@@ -20,7 +20,6 @@ class Worker:
         self._current_build = None
         self._current_build_task = Task(
             task_group, self._start_build, self._on_build_finished)
-        self._build_finished_task = Task(task_group, self._build_finished)
         self._logger = Logger(self.get_current_build_id)
 
     def get_current_build_id(self):
@@ -41,66 +40,60 @@ class Worker:
         await self._current_build_task.cancel()
 
     async def update(self):
-        async with db.acquire():
-            await db.commit()  # Needed for query to be up-to-date
+        db.commit()  # Needed for query to be up-to-date
 
-            if (self._current_build is not None and
-                    self._current_build_task.running()):
-                state = await self._current_build.state()
-                if state is None or state == 'ABORTED':
-                    await self._current_build_task.cancel()
+        if (self._current_build is not None and
+                self._current_build_task.running()):
+            state = self._current_build.state()
+            if state is None or state == 'ABORTED':
+                await self._current_build_task.cancel()
 
-            if self._current_build is None:
-                build_request = await Build.pop_next_build_request()
-                if build_request is not None:
-                    self._current_build_task.start(build_request)
-                else:
-                    print("Idle")
+        if self._current_build is None:
+            build_request = Build.pop_next_build_request()
+            if build_request is not None:
+                self._current_build_task.start(build_request)
 
     async def disconnected(self):
         if self._current_build is not None:
-            await self._build_finished_task.cancel()
             await self._current_build_task.cancel()
-            await self._reset_current_build()
 
     async def _start_build(self, build_request):
-        async with db.acquire():
-            self._current_build = build_request
-            print("Starting build: "
+        self._current_build = build_request
+        print("Starting build: "
+              f"{self._current_build.id()}, "
+              f"{self._current_build.branch()}, "
+              f"{self._current_build.state()}")
+        self._log('INFO',
+                  "Starting build! id: "
                   f"{self._current_build.id()}, "
-                  f"{await self._current_build.branch()}, "
-                  f"{await self._current_build.state()}")
-            await self._log('INFO',
-                            "Starting build! id: "
-                            f"{self._current_build.id()}, "
-                            f"branch: {await self._current_build.branch()}")
+                  f"branch: {self._current_build.branch()}")
 
-            modules = deque([[
-                Path("."),                           # git_dir
-                Path("."),                           # work_tree
-                "/home/auygun/code/proj2/proj.git",  # remote url
-                "origin/" + "master"                 # refspec
-            ]])
+        modules = deque([[
+            Path("."),                           # git_dir
+            Path("."),                           # work_tree
+            "/home/auygun/code/proj2/proj.git",  # remote url
+            "origin/" + "master"                 # refspec
+        ]])
 
-            try:
-                while True:
-                    try:
-                        module = modules.popleft()
-                    except IndexError:
-                        break
-                    print(module)
-                    submodules = await self.prepare_module(*module)
-                    for sm in submodules:
-                        modules.append(sm)
+        try:
+            while True:
+                try:
+                    module = modules.popleft()
+                except IndexError:
+                    break
+                print(module)
+                submodules = await self.prepare_module(*module)
+                for sm in submodules:
+                    modules.append(sm)
 
-                build_script = Path("build/build.py")
-                await runner.run(["python3", str(build_script)],
-                                 cwd=self.work_tree_root(), logger=self._logger)
-            except runner.RunProcessError as e:
-                print(e.output.splitlines()[-1])
-                return e.returncode
+            build_script = Path("build/build.py")
+            await runner.run(["python3", str(build_script)],
+                             cwd=self.work_tree_root(), logger=self._logger)
+        except runner.RunProcessError as e:
+            print(e.output.splitlines()[-1])
+            return e.returncode
 
-            return 0
+        return 0
 
     async def prepare_module(self, git_dir, work_tree, remote_url,
                              commit_or_branch):
@@ -128,35 +121,31 @@ class Worker:
         return submodules
 
     def _on_build_finished(self, result):
-        self._build_finished_task.start(result)
+        if result == 'CANCELED':
+            print("Build canceled!")
+            self._log('INFO', "Build canceled!")
+        else:
+            db.commit()  # Needed for query to be up-to-date
+            try:
+                if result == 0:
+                    print("Build Succeeded!")
+                    self._current_build.set_state('SUCCEEDED')
+                    self._log('INFO', "Build succeeded!")
+                else:
+                    print("Build failed!")
+                    self._current_build.set_state('FAILED')
+                    self._log('INFO', "Build failed!")
+            except OperationalError as e:
+                print(f'db error: {e.args}')
+            db.commit()
+        self._reset_current_build()
 
-    async def _build_finished(self, result):
-        async with db.acquire():
-            if result == 'CANCELED':
-                print("Build canceled!")
-                await self._log('INFO', "Build canceled!")
-            else:
-                await db.commit()  # Needed for query to be up-to-date
-                try:
-                    if result == 0:
-                        print("Build Succeeded!")
-                        await self._current_build.set_state('SUCCEEDED')
-                        await self._log('INFO', "Build succeeded!")
-                    else:
-                        print("Build failed!")
-                        await self._current_build.set_state('FAILED')
-                        await self._log('INFO', "Build failed!")
-                except OperationalError as e:
-                    print(f'db error: {e.args}')
-                await db.commit()
-        await self._reset_current_build()
-
-    async def _reset_current_build(self):
+    def _reset_current_build(self):
         self._current_build = None
 
-    async def _log(self, severity, message):
+    def _log(self, severity, message):
         if self._logger is not None:
-            await self._logger.log(severity, message)
+            self._logger.log(severity, message)
 
 
 class ShutdownHandler:
@@ -182,8 +171,9 @@ async def _main():
 
         while not shutdown.shutdown:
             try:
-                await db.open_db()
-            except OperationalError:
+                db.ping()
+            except OperationalError as e:
+                print(e)
                 await asyncio.sleep(5)
                 continue
 
@@ -191,13 +181,12 @@ async def _main():
                 try:
                     await worker.update()
                 except OperationalError as e:
-                    print(f'db error: {e.args}')
+                    print(e)
                     await worker.disconnected()
                     break
                 await asyncio.sleep(1)
 
         await worker.shutdown()
-    await db.close_db()
 
 
 def _run():

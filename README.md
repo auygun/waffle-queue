@@ -28,7 +28,6 @@ sudo mariadb
 
 sudo pacman -S python-flask
 sudo pacman -S python-pymysql
-sudo pacman -S python-aiomysql
 sudo pacman -S python-lazy-object-proxy
 
 cd server
@@ -76,7 +75,6 @@ cd server/worker
 [simple.css](https://github.com/kevquirk/simple.css),
 [material-icons](https://github.com/marella/material-icons),
 [flask](https://github.com/pallets/flask/),
-[aiomysql](https://github.com/aio-libs/aiomysql),
 [pymysql](https://github.com/PyMySQL/PyMySQL),
 [pymysql-pool](https://github.com/jkklee/pymysql-pool),
 [lazy-object-proxy](https://github.com/ionelmc/python-lazy-object-proxy),

@@ -1,45 +1,45 @@
-import db_async as db
+import db
 from entity import Entity
 
 
 class Build(Entity):
-    async def branch(self):
-        return await self._fetch('branch')
+    def branch(self):
+        return self._fetch('branch')
 
-    async def state(self):
-        return await self._fetch('state')
+    def state(self):
+        return self._fetch('state')
 
-    async def set_state(self, value):
-        return await self._update('state', value)
+    def set_state(self, value):
+        return self._update('state', value)
 
     @staticmethod
-    async def pop_next_build_request():
+    def pop_next_build_request():
         # Fetch the next available build request from the queue and mark it as
         # building.
         build = None
-        async with db.cursor() as cursor:
-            build_ids = await cursor.execute("SELECT id FROM builds "
-                                             "WHERE state='REQUESTED' "
-                                             "ORDER BY id "
-                                             "FOR UPDATE SKIP LOCKED")
-            build_ids = await cursor.fetchone()
+        with db.cursor() as cursor:
+            build_ids = cursor.execute("SELECT id FROM builds "
+                                       "WHERE state='REQUESTED' "
+                                       "ORDER BY id "
+                                       "FOR UPDATE SKIP LOCKED")
+            build_ids = cursor.fetchone()
             if build_ids is not None:
                 build = Build(build_ids[0])
-                await build.set_state('BUILDING')
-            await db.commit()
+                build.set_state('BUILDING')
+            db.commit()
         return build
 
-    async def _fetch(self, field):
-        async with db.cursor() as cursor:
-            await cursor.execute(f"SELECT {field} FROM builds "
-                                 "WHERE id=%s",
-                                 (self.id()))
-            r = await cursor.fetchone()
+    def _fetch(self, field):
+        with db.cursor() as cursor:
+            cursor.execute(f"SELECT {field} FROM builds "
+                           "WHERE id=%s",
+                           (self.id()))
+            r = cursor.fetchone()
             return r[0] if r is not None else None
 
-    async def _update(self, field, value):
-        async with db.cursor() as cursor:
-            await cursor.execute("UPDATE builds "
-                                 f"SET {field}=%s "
-                                 "WHERE id=%s",
-                                 (value, self.id()))
+    def _update(self, field, value):
+        with db.cursor() as cursor:
+            cursor.execute("UPDATE builds "
+                           f"SET {field}=%s "
+                           "WHERE id=%s",
+                           (value, self.id()))
