@@ -57,9 +57,9 @@ class Worker:
             await self._current_build_task.cancel()
             await self._reset_current_build()
 
-    async def _start_build(self, *args):
+    async def _start_build(self, build_request):
         async with db.acquire():
-            self._current_build = args[0][0]
+            self._current_build = build_request
             print("Starting build: "
                   f"{self._current_build.id()}, "
                   f"{await self._current_build.branch()}, "
@@ -120,8 +120,7 @@ class Worker:
     def _on_build_finished(self, result):
         self._build_finished_task.start(result)
 
-    async def _build_finished(self, *args):
-        result = args[0][0]
+    async def _build_finished(self, result):
         async with db.acquire():
             if result == 'CANCELED':
                 print("Build canceled!")

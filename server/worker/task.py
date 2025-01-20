@@ -13,7 +13,7 @@ class Task:
 
     def start(self, *args):
         if not self._task:
-            self._task = self._task_group.create_task(self._coro_func(args))
+            self._task = self._task_group.create_task(self._coro_func(*args))
             self._task.add_done_callback(self._done)
 
     async def cancel(self):
