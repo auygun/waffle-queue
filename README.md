@@ -76,6 +76,5 @@ cd server/worker
 [material-icons](https://github.com/marella/material-icons),
 [flask](https://github.com/pallets/flask/),
 [pymysql](https://github.com/PyMySQL/PyMySQL),
-[pymysql-pool](https://github.com/jkklee/pymysql-pool),
 [lazy-object-proxy](https://github.com/ionelmc/python-lazy-object-proxy),
 [mariadb](https://github.com/MariaDB/server)
