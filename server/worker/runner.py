@@ -13,27 +13,23 @@ class Runner:
     def __init__(self, logger=None):
         self._logger = logger
 
-    async def run(self, cmd, cwd=None, env=None, output=None, decode="latin-1"):
+    async def run(self, cmd, cwd=None, env=None, stdout=asyncio.subprocess.PIPE,
+                  encoding="utf-8"):
         await self._log('INFO', f"Run: '{' '.join(cmd)}'")
-
-        stdout = asyncio.subprocess.PIPE if output is None else output
         proc = await asyncio.create_subprocess_exec(
-            cmd[0],
-            *cmd[1:],
-            cwd=cwd,
-            env=env,
+            cmd[0], *cmd[1:],
+            cwd=cwd, env=env,
             stdout=stdout,
-            stderr=asyncio.subprocess.STDOUT,
-            process_group=0
-        )
+            stderr=asyncio.subprocess.STDOUT if stdout is not None else None,
+            process_group=0)
 
         try:
             if stdout == asyncio.subprocess.PIPE:
                 output, _ = await proc.communicate()
+                if encoding is not None:
+                    output = output.decode(encoding)
                 for line in output.splitlines():
                     await self._log('TRACE', line)
-                if decode is not None:
-                    output = output.decode("latin-1")
             else:
                 await proc.wait()
                 output = None
