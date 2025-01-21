@@ -45,10 +45,6 @@ sudo pacman -S python-gevent
 
 gunicorn -k gevent -w 4 -b 127.0.0.1:5001 'app:create_app()'
 ```
-(*Alternative option*) Use **gthread** asynchronous worker class.
-```
-gunicorn --threads 5 -w 4 -b 127.0.0.1:5001 'app:create_app()'
-```
 (*Optional / Production*) Put gunicorn behind a **nginx** HTTP proxy server.
 ```text
 server {

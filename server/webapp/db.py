@@ -17,7 +17,7 @@ def _init_logger(level='WARNING'):
 
 
 def _create_pool():
-    _logger.setLevel('DEBUG')
+    # _logger.setLevel('DEBUG')
     return ConnectionPool(host='127.0.0.1', port=3306,
                           user='mysql', password='mysql',
                           db='waffle_queue', autocommit=False,

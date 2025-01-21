@@ -27,6 +27,6 @@ if __name__ == '__main__':
         port=int(os.getenv("PORT", "5001")),
         debug=True,
         use_evalex=False,
-        threaded=True,
+        threaded=False,
         processes=1,
     )
