@@ -1,10 +1,8 @@
 {
-"pylint.args": [
-  "--disable=c0114",
-  "--disable=c0115",
-  "--disable=c0116",
-  "--disable=w0603",
-  "--disbale=r0912"
-  "--disbale=r0913"
-]
+  "pylint.args": [
+    "--disable=e1101", // Module '..' has no '..' member
+    "--disable=c0114", // Missing module docstring
+    "--disable=c0115", // Missing class docstring
+    "--disable=c0116" // Missing function or method docstring
+  ]
 }

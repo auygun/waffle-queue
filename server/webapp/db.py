@@ -37,26 +37,30 @@ class Connection(pymysql.connections.Connection):
         super().__init__(*args, **kwargs)
         self._returned = False
 
-    def _prepare(self):
+    def set_in_use(self):
         self._returned = False
         if self._sock is None:
             _logger.debug("reconnecting")
             self.connect()
 
+    def set_returned(self):
+        assert not self._returned
+        self._returned = True
+
 
 class ConnectionPool:
-    def __init__(self, max_size=1000, *args, **kwargs):
+    def __init__(self, *args, max_size=100, **kwargs):
         self._pool = deque()
         self._num_connections = 0
         self._max_size = max_size
         self._args = args
         self._kwargs = kwargs
 
-    def _get_connection(self):
+    def get_connection(self):
         _logger.debug(f"pool size: {len(self._pool)}")
         try:
             conn = self._pool.popleft()
-            conn._prepare()
+            conn.set_in_use()
             return conn
         except IndexError:
             return self._create_connection()
@@ -68,23 +72,22 @@ class ConnectionPool:
             return Connection(*self._args, **self._kwargs)
         raise CreateConnectionError()
 
-    def _return_connection(self, conn):
+    def return_connection(self, conn):
         _logger.debug(f"pool size: {len(self._pool)}")
-        assert conn._returned == False
-        conn._returned = True
+        conn.set_returned()
         self._pool.append(conn)
 
 
 def connection():
-    if '_conn' not in g:
-        g._conn = _pool._get_connection()
-    return g._conn
+    if 'sql_conn' not in g:
+        g.sql_conn = _pool.get_connection()
+    return g.sql_conn
 
 
-def recycle(e=None):
-    conn = g.pop('_conn', None)
+def recycle(_e=None):
+    conn = g.pop('sql_conn', None)
     if conn is not None:
-        _pool._return_connection(conn)
+        _pool.return_connection(conn)
 
 
 def cursor():
@@ -100,6 +103,6 @@ def rollback():
 
 
 def now():
-    with connection().cursor() as cursor:
-        cursor.execute("SELECT NOW()")
-        return cursor.next()[0]
+    with connection().cursor() as cur:
+        cur.execute("SELECT NOW()")
+        return cur.next()[0]

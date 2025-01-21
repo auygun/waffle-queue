@@ -151,8 +151,7 @@ class ShutdownHandler:
         signal.signal(signal.SIGINT, self.signal_caught)
         signal.signal(signal.SIGTERM, self.signal_caught)
 
-    # pylint:disable = unused-argument
-    def signal_caught(self, *args):
+    def signal_caught(self, *_args):
         self.shutdown_gracefully("Signal caught")
 
     def shutdown_gracefully(self, reason):

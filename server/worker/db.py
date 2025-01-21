@@ -28,6 +28,6 @@ def rollback():
 
 
 def now():
-    with _conn.cursor() as cursor:
-        cursor.execute("SELECT NOW()")
-        return cursor.next()[0]
+    with _conn.cursor() as cur:
+        cur.execute("SELECT NOW()")
+        return cur.next()[0]

@@ -6,14 +6,11 @@ bp = Blueprint("rest", __name__, url_prefix="/api/v1")
 
 
 @bp.errorhandler(OperationalError)
-def db_exception_handler(error):
-    print(error)
-    return 'Database connection failed', 500
-
-
 @bp.errorhandler(db.CreateConnectionError)
-def db_exception_handler(error):
-    print(error)
+def db_exception_handler(exc):
+    print(exc)
+    if isinstance(exc, OperationalError):
+        return 'Database connection failed', 500
     return 'Too many requests', 500
 
 
@@ -23,6 +20,7 @@ def add_cache_controls(response):
     return response
 
 
+# pylint:disable=bare-except
 @bp.teardown_request
 def db_commit(_exc):
     try:

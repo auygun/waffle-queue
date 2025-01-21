@@ -10,6 +10,8 @@ class RunProcessError(Exception):
         self.output = output
 
 
+# pylint:disable = too-many-branches
+# pylint:disable = too-many-arguments
 async def run(cmd, cwd=None, env=None, output=None, encoding="utf-8",
               logger=None):
     if logger is not None:
