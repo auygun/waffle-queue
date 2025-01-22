@@ -1,3 +1,4 @@
+import time
 from flask import Blueprint, request, abort
 from pymysql.err import OperationalError
 import db
@@ -5,13 +6,16 @@ import db
 bp = Blueprint("rest", __name__, url_prefix="/api/v1")
 
 
-@bp.errorhandler(OperationalError)
 @bp.errorhandler(db.CreateConnectionError)
-def db_exception_handler(exc):
+def db_create_connection_error(exc):
     print(exc)
-    if isinstance(exc, OperationalError):
-        return 'Database connection failed', 500
-    return 'Too many requests', 500
+    return 'Systems is too busy', 500
+
+
+@bp.errorhandler(OperationalError)
+def sql_operational_error(exc):
+    print(exc)
+    return str(exc.args), 500
 
 
 @bp.after_request
