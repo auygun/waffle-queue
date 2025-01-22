@@ -19,10 +19,10 @@ class Build(Entity):
         build = None
         db.commit()  # Start new transaction
         with db.cursor() as cursor:
-            build_ids = cursor.execute("SELECT id FROM builds "
-                                       "WHERE state='REQUESTED' "
-                                       "ORDER BY id "
-                                       "FOR UPDATE SKIP LOCKED")
+            build_ids = cursor.execute("SELECT id FROM builds"
+                                       " WHERE state='REQUESTED'"
+                                       " ORDER BY id"
+                                       " FOR UPDATE SKIP LOCKED")
             build_ids = cursor.fetchone()
             if build_ids is not None:
                 build = Build(build_ids[0])
@@ -32,15 +32,12 @@ class Build(Entity):
 
     def _fetch(self, field):
         with db.cursor() as cursor:
-            cursor.execute(f"SELECT {field} FROM builds "
-                           "WHERE id=%s",
+            cursor.execute(f"SELECT {field} FROM builds WHERE id=%s",
                            (self.id()))
             r = cursor.fetchone()
             return r[0] if r is not None else None
 
     def _update(self, field, value):
         with db.cursor() as cursor:
-            cursor.execute("UPDATE builds "
-                           f"SET {field}=%s "
-                           "WHERE id=%s",
+            cursor.execute(f"UPDATE builds SET {field}=%s WHERE id=%s",
                            (value, self.id()))

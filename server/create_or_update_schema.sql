@@ -1,9 +1,35 @@
+DELIMITER //
+
+CREATE TABLE IF NOT EXISTS settings (
+  name VARCHAR(32) PRIMARY KEY,
+  value TINYTEXT NOT NULL
+);
+
+INSERT IGNORE settings (name, value)
+VALUE
+  ("log_level", "TRACE");
+
+CREATE TABLE IF NOT EXISTS log_level (
+  severity VARCHAR(5) PRIMARY KEY,
+  rank TINYINT UNSIGNED NOT NULL
+);
+
+INSERT IGNORE log_level (severity, rank)
+VALUE
+  ('FATAL', 1),
+  ('ERROR', 2),
+  ('WARN', 3),
+  ('INFO', 4),
+  ('DEBUG', 5),
+  ('TRACE', 6);
+
 CREATE TABLE IF NOT EXISTS builds (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     branch TEXT NOT NULL,
     state ENUM ('REQUESTED', 'BUILDING', 'SUCCEEDED', 'FAILED', 'ABORTED') NOT NULL,
     INDEX idx1 (state)
 );
+
 CREATE TABLE IF NOT EXISTS logs (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     build_id INT UNSIGNED NOT NULL,
@@ -13,3 +39,7 @@ CREATE TABLE IF NOT EXISTS logs (
     INDEX (build_id),
     FOREIGN KEY (build_id) REFERENCES builds(id) ON DELETE CASCADE
 );
+
+//
+
+DELIMITER ;
