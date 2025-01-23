@@ -81,7 +81,6 @@ class ConnectionPool:
             _logger.debug(f"pool size: {len(self._pool)}")
             raise
 
-    # pylint:disable=try-except-raise
     def _create_connection(self):
         if self._num_connections >= self._max_size:
             # No room in the connection pool
