@@ -1,6 +1,6 @@
 import re
 
-import runner
+from . import runner
 
 
 async def init_or_update(git_dir, name, url, logger=None):

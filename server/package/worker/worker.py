@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 import asyncio
 import signal
 import sys
@@ -7,12 +5,12 @@ from pathlib import Path
 from collections import deque
 
 from pymysql.err import OperationalError
-import db
-import runner
-import git
-from task import Task
-from build import Build
-from logger import Logger
+from . import db
+from . import runner
+from . import git
+from .task import Task
+from .build import Build
+from .logger import Logger
 
 
 class Worker:
@@ -185,9 +183,5 @@ async def _main():
         await worker.shutdown()
 
 
-def _run():
+def run():
     asyncio.run(_main())
-
-
-if __name__ == "__main__":
-    _run()

@@ -1,7 +1,6 @@
-import time
 from flask import Blueprint, request, abort
 from pymysql.err import OperationalError
-import db
+from . import db
 
 bp = Blueprint("rest", __name__, url_prefix="/api/v1")
 

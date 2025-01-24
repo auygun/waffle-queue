@@ -33,8 +33,7 @@ sudo pacman -S python-lazy-object-proxy
 cd server
 ./sql_runner.py create_or_update_schema.sql
 
-cd webapp
-./app.py
+./webapp.py
 ```
 (*Optional / Production*) Run with **gunicorn** and **gevent**.
 The backend uses pymysql which is gevent friendly
@@ -43,7 +42,7 @@ The backend uses pymysql which is gevent friendly
 sudo pacman -S gunicorn
 sudo pacman -S python-gevent
 
-gunicorn -k gevent -w 4 -b 127.0.0.1:5001 'app:create_app()'
+gunicorn -k gevent -w 4 -b 127.0.0.1:5001 'package.webapp.app:create_app()'
 ```
 (*Optional / Production*) Put gunicorn behind a **nginx** HTTP proxy server.
 ```text
@@ -60,7 +59,7 @@ server {
 ### Run a worker daemon:
 Workers pull and run jobs from queue.
 ```text
-cd server/worker
+cd server
 ./worker.py
 ```
 

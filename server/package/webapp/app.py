@@ -1,9 +1,8 @@
-#!/usr/bin/env python3
-
 import os
+
 from flask import Flask
-import rest
-import db
+from . import rest
+from . import db
 
 
 def create_app():
@@ -21,7 +20,7 @@ def create_app():
     return app
 
 
-if __name__ == '__main__':
+def dev_run():
     create_app().run(
         host="127.0.0.1",
         port=int(os.getenv("PORT", "5001")),

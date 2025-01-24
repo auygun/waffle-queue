@@ -1,7 +1,7 @@
 from contextlib import contextmanager
 
 from pymysql.err import InterfaceError
-import db
+from . import db
 
 
 class Logger:

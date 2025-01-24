@@ -1,5 +1,5 @@
-import db
-from entity import Entity
+from . import db
+from .entity import Entity
 
 
 class Build(Entity):
