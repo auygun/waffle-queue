@@ -9,8 +9,8 @@ from . import db
 from . import runner
 from . import git
 from .task import Task
-from .build import Build
-from .logger import Logger
+from ..build import Build
+from ..logger import Logger
 
 
 class Worker:
