@@ -12,10 +12,8 @@ class RunProcessError(Exception):
 
 # pylint:disable = too-many-branches
 # pylint:disable = too-many-arguments
-async def run(cmd, cwd=None, env=None, output=None, encoding="utf-8",
-              logger=None):
-    if logger is not None:
-        logger.log('INFO', f"Run: '{' '.join(cmd)}'")
+async def run(cmd, logger, cwd=None, env=None, output=None, encoding="utf-8"):
+    logger.info(f"Run: '{' '.join(cmd)}'")
 
     if output is None:
         if logger is None:
@@ -40,32 +38,28 @@ async def run(cmd, cwd=None, env=None, output=None, encoding="utf-8",
             stdout, _ = await proc.communicate()
             if encoding is not None:
                 stdout = stdout.decode(encoding)
-            if logger is not None:
-                with logger.bulk_logger('TRACE') as log:
-                    for line in stdout.splitlines():
-                        log(line)
-                if output is None:
-                    stdout = None
+            with logger.bulk_logger('TRACE') as log:
+                for line in stdout.splitlines():
+                    log(line)
+            if output is None:
+                stdout = None
         else:
             await proc.wait()
             stdout = None
 
-        if logger is not None:
-            logger.log('INFO', f"Exit code: {proc.returncode}")
+        logger.info(f"Exit code: {proc.returncode}")
         if proc.returncode:
             raise RunProcessError(proc.returncode, stdout)
         return stdout
     except asyncio.CancelledError:
-        if logger is not None:
-            logger.log('INFO', f"Terminating {cmd[0]}")
+        logger.info(f"Terminating {cmd[0]}")
         try:
             proc.terminate()
             try:
                 await asyncio.wait_for(proc.wait(), timeout=10)
             except TimeoutError:
                 proc.kill()
-                if logger is not None:
-                    logger.log('WARNING', f"Killed {cmd[0]}")
+                logger.warning(f"Killed {cmd[0]}")
         except ProcessLookupError:
             pass
         raise

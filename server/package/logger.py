@@ -48,6 +48,24 @@ class Logger:
             # Can happen when task gets canceled due to disconnection
             pass
 
+    def fatal(self, message, commit=True):
+        self.log('FATAL', message, commit)
+
+    def error(self, message, commit=True):
+        self.log('ERROR', message, commit)
+
+    def warning(self, message, commit=True):
+        self.log('WARNING', message, commit)
+
+    def info(self, message, commit=True):
+        self.log('INFO', message, commit)
+
+    def debug(self, message, commit=True):
+        self.log('DEBUG', message, commit)
+
+    def trace(self, message, commit=True):
+        self.log('TRACE', message, commit)
+
     def _log(self, severity, message):
         with db.cursor() as cursor:
             cursor.execute(

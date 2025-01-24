@@ -59,9 +59,9 @@ class Worker:
         print("Starting build: "
               f"{self._current_build.id()}, "
               f"{self._current_build.branch()}")
-        self._log('INFO', "Starting build! id: "
-                  f"{self._current_build.id()}, "
-                  f"branch: {self._current_build.branch()}")
+        self._logger.info("Starting build! id: "
+                          f"{self._current_build.id()}, "
+                          f"branch: {self._current_build.branch()}")
 
         modules = deque([[
             Path("."),                           # git_dir
@@ -93,18 +93,18 @@ class Worker:
     def _on_build_finished(self, result):
         if result == 'CANCELED':
             print("Build canceled!")
-            self._log('INFO', "Build canceled!")
+            self._logger.info("Build canceled!")
         else:
             db.commit()
             try:
                 if result == 0:
                     print("Build Succeeded!")
                     self._current_build.set_state('SUCCEEDED')
-                    self._log('INFO', "Build succeeded!")
+                    self._logger.info("Build succeeded!")
                 else:
                     print("Build failed!")
                     self._current_build.set_state('FAILED')
-                    self._log('INFO', "Build failed!")
+                    self._logger.info("Build failed!")
             except OperationalError as e:
                 print(e)
             db.commit()
@@ -137,10 +137,6 @@ class Worker:
                                sm[1][0],
                                sm[1][1]])
         return submodules
-
-    def _log(self, severity, message):
-        if self._logger is not None:
-            self._logger.log(severity, message)
 
 
 class ShutdownHandler:
