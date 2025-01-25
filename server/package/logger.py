@@ -8,6 +8,22 @@ class Logger:
     def __init__(self, build_id_cb):
         self._build_id_cb = build_id_cb
 
+    def list(self, max_severity=None, jsonify=False):
+        if max_severity is None:
+            with db.cursor() as cursor:
+                cursor.execute("SELECT value FROM settings"
+                               " WHERE name='log_level'")
+                max_severity = cursor.fetchone()[0]
+        with db.cursor() as cursor:
+            cursor.execute("SELECT build_id, timestamp, severity, message"
+                           " FROM logs WHERE severity<=%s ORDER BY id",
+                           (max_severity))
+            if jsonify:
+                keys = ["build_id", "timestamp", "severity", "message"]
+                return [dict(zip(keys, row)) for row in cursor]
+            else:
+                return list(cursor)
+
     @contextmanager
     def bulk_logger(self, severity):
         def log(message):

@@ -17,7 +17,10 @@ function onSyncOnEvent(syncOn: boolean) {
     <nav>
       <ul>
         <li>
-          <RouterLink to="/home">Home</RouterLink>
+          <RouterLink to="/queue">Build Queue</RouterLink>
+        </li>
+        <li>
+          <RouterLink to="/log">Log</RouterLink>
         </li>
         <li>
           <RouterLink to="/about">About</RouterLink>

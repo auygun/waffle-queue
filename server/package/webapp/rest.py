@@ -1,21 +1,26 @@
 from flask import Blueprint, request, abort
 from pymysql.err import OperationalError
 
+import lazy_object_proxy
 from ..build import Build
+from ..logger import Logger
 from . import db
 
+logger = lazy_object_proxy.Proxy(lambda: Logger(0))
 bp = Blueprint("rest", __name__, url_prefix="/api/v1")
 
 
 @bp.errorhandler(db.CreateConnectionError)
 def db_create_connection_error(exc):
     print(exc)
+    logger.warning(str(exc), commit=False)
     return 'Systems is too busy', 500
 
 
 @bp.errorhandler(OperationalError)
 def sql_operational_error(exc):
     print(exc)
+    logger.warning(str(exc), commit=False)
     return str(exc.args), 500
 
 
@@ -59,3 +64,10 @@ def abort_build(build_id):
 def clear():
     Build.clear()
     return {}
+
+
+@bp.route('/log', methods=['GET'])
+def get_log():
+    return {
+        'content': logger.list(jsonify=True)
+    }

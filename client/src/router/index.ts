@@ -5,12 +5,17 @@ const router = createRouter({
   routes: [
     {
       path: '/',
-      redirect: '/home',
+      redirect: '/queue',
     },
     {
-      path: '/home',
-      name: 'home',
-      component: () => import('../views/HomeView.vue'),
+      path: '/queue',
+      name: 'queue',
+      component: () => import('../views/QueueView.vue'),
+    },
+    {
+      path: '/log',
+      name: 'log',
+      component: () => import('../views/LogView.vue'),
     },
     {
       path: '/about',
