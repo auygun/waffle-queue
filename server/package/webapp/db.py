@@ -22,8 +22,7 @@ def _create_pool():
     # _logger.setLevel('DEBUG')
     return ConnectionPool(host='127.0.0.1', port=3306,
                           user='mysql', password='mysql',
-                          db='waffle_queue', autocommit=False,
-                          cursorclass=pymysql.cursors.DictCursor)
+                          db='waffle_queue', autocommit=False)
 
 
 _logger = lazy_object_proxy.Proxy(_init_logger)

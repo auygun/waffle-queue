@@ -1,8 +1,7 @@
 import os
 
 from flask import Flask
-from . import rest
-from . import db
+from . import rest, db
 
 
 def create_app():

@@ -1,5 +1,7 @@
 from flask import Blueprint, request, abort
 from pymysql.err import OperationalError
+
+from ..build import Build
 from . import db
 
 bp = Blueprint("rest", __name__, url_prefix="/api/v1")
@@ -33,11 +35,9 @@ def db_commit(_exc):
 
 @bp.route('/builds', methods=['GET'])
 def get_builds():
-    with db.cursor() as cursor:
-        cursor.execute('SELECT * FROM builds')
-        return {
-            'builds': cursor.fetchall()
-        }
+    return {
+        'builds': Build.list(jsonify=True)
+    }
 
 
 @bp.route("/integrate", methods=["POST"])
@@ -45,24 +45,17 @@ def integrate():
     branch = request.form.get("branch", "")
     if branch == "":
         return abort(400)
-    with db.cursor() as cursor:
-        cursor.execute("INSERT INTO builds (branch, state) "
-                       "VALUES (%s, %s)", (branch, 'REQUESTED'))
+    Build.new(branch)
     return {}
 
 
 @bp.route("/abort/<build_id>", methods=["POST"])
 def abort_build(build_id):
-    with db.cursor() as cursor:
-        cursor.execute("UPDATE builds SET state = CASE "
-                       "WHEN (state='REQUESTED' OR state='BUILDING') "
-                       "THEN 'ABORTED' ELSE state "
-                       "END WHERE id=%s", (build_id))
+    Build(build_id).abort()
     return {}
 
 
 @bp.route("/dev/clear", methods=["POST"])
 def clear():
-    with db.cursor() as cursor:
-        cursor.execute('DELETE FROM builds')
+    Build.clear()
     return {}

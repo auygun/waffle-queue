@@ -5,9 +5,7 @@ from pathlib import Path
 from collections import deque
 
 from pymysql.err import OperationalError
-from . import db
-from . import runner
-from . import git
+from . import db, runner, git
 from .task import Task
 from ..build import Build
 from ..logger import Logger

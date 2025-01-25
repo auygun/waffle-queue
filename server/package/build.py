@@ -12,6 +12,41 @@ class Build(Entity):
     def set_state(self, value):
         return self._update('state', value)
 
+    def abort(self):
+        with db.cursor() as cursor:
+            cursor.execute("UPDATE builds SET state = CASE "
+                           "WHEN (state='REQUESTED' OR state='BUILDING') "
+                           "THEN 'ABORTED' ELSE state "
+                           "END WHERE id=%s", (self.id()))
+
+    def jsonify(self):
+        return {
+            "id": self.id(),
+            "branch": self.branch(),
+            "state": self.state()
+        }
+
+    @staticmethod
+    def new(branch, state='REQUESTED'):
+        with db.cursor() as cursor:
+            cursor.execute("INSERT INTO builds (branch, state) "
+                           "VALUES (%s, %s) RETURNING id", (branch, state))
+        return Build(*cursor.fetchone())
+
+    @staticmethod
+    def list(jsonify=False):
+        with db.cursor() as cursor:
+            cursor.execute("SELECT id FROM builds ORDER BY id DESC")
+            if jsonify:
+                return [Build(*row).jsonify() for row in cursor]
+            else:
+                return [Build(*row) for row in cursor]
+
+    @staticmethod
+    def clear():
+        with db.cursor() as cursor:
+            cursor.execute("DELETE FROM builds")
+
     @staticmethod
     def pop_next_build_request():
         # Fetch the next available build request from the queue and mark it as
@@ -25,7 +60,7 @@ class Build(Entity):
                                        " FOR UPDATE SKIP LOCKED")
             build_ids = cursor.fetchone()
             if build_ids is not None:
-                build = Build(build_ids[0])
+                build = Build(*build_ids)
                 build.set_state('BUILDING')
         db.commit()  # Release locks
         return build
