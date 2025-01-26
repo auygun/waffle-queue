@@ -38,45 +38,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div id="container">
-    <div id="log">
-      <div id="severity">
-        <div v-for="(entry, index) in log" :key="index" v-bind:title="entry.timestamp">
-          {{ entry.severity }}
-        </div>
-      </div>
-      <div id="message">
-        <div v-for="(entry, index) in log" :key="index">
-          {{ entry.message }}
-        </div>
-      </div>
-    </div>
-  </div>
+  <pre><code v-for="(entry, index) in log" :key="index" v-bind:title="entry.timestamp">{{ entry.severity }}&#9;{{ entry.message }}<br></code></pre>
 
   <Modal ref="modal" />
 </template>
-
-<style scoped>
-#container {
-  height: 65vh;
-  width: 100%;
-}
-
-#log {
-  overflow: auto;
-  height: 100%;
-  white-space: nowrap
-}
-
-#severity {
-  float: left;
-  height: 100%;
-  width: 10%;
-}
-
-#message {
-  float: left;
-  height: 100%;
-  width: 90%;
-}
-</style>
