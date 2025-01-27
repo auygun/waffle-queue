@@ -24,15 +24,23 @@ body > footer {
 
 body > header {
   margin-bottom: 1rem;
-  padding: 0.5rem;
+  padding: 1rem;
+  white-space: nowrap;
 }
 
 body > header h1 {
   margin: 0 auto;
+  padding-right: 2rem;
+  display: inline-block;
+  vertical-align: middle;
 }
 
 main {
   padding-top: 0;
+}
+
+nav {
+  display: inline-block;
 }
 
 h2, h3 {

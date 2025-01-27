@@ -25,7 +25,9 @@ function onSyncOnEvent(syncOn: boolean) {
         <li>
           <RouterLink to="/about">About</RouterLink>
         </li>
-        <Sync ref="sync" />
+        <div style="padding-left: 0.5rem;">
+          <Sync ref="sync" />
+        </div>
       </ul>
     </nav>
   </header>
