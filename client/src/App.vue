@@ -39,8 +39,9 @@ function onSyncOnEvent(syncOn: boolean) {
   </main>
 
   <footer class="footer">
-    <p>WaffleQueue was developed by Attila Uygun and is licensed under the MIT license.<br>
-      <a href="https://github.com/auygun/waffle-queue">Source code</a>
+    <p>
+      <a href="https://github.com/auygun/waffle-queue" target="_blank">WaffleQueue</a>
+      was developed by Attila Uygun and is licensed under the MIT license.
     </p>
   </footer>
 </template>

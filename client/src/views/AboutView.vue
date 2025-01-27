@@ -1,4 +1,4 @@
 <template>
-  <h1>About WaffleQueue</h1>
-  <p>My simple CI/CD project</p>
+  <h3>About WaffleQueue</h3>
+  My simple CI/CD project
 </template>

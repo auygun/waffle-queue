@@ -69,12 +69,14 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="header">
+  <div>
     <h3>Integration</h3>
     <input v-model="sourceBranchName" placeholder="Source branch" />&nbsp
     <button @click="integrate">Request</button>&nbsp
     <button @click="clear">Clear</button>
   </div>
+
+  <div style="margin-top: 1rem;"></div>
 
   <div class="content">
     <table class="fixed_thead">
@@ -100,6 +102,8 @@ onUnmounted(() => {
       </tbody>
     </table>
   </div>
+
+  <div style="margin-top: 1rem;"></div>
 
   <Modal ref="modal" />
 </template>

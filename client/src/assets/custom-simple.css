@@ -17,6 +17,29 @@ body {
   flex-flow: column;
 }
 
+body > footer {
+  margin-top: 1rem;
+  padding: 0;
+}
+
+body > header {
+  margin-bottom: 1rem;
+  padding: 0.5rem;
+}
+
+body > header h1 {
+  margin: 0 auto;
+}
+
+main {
+  padding-top: 0;
+}
+
+h2, h3 {
+  margin-top: 0.5rem;
+  margin-bottom: 1rem;
+}
+
 .header {
   flex: 0 1 auto;
 }
