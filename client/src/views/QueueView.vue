@@ -77,7 +77,7 @@ onUnmounted(() => {
   </div>
 
   <div class="content">
-    <table width="100%">
+    <table class="fixed_thead">
       <thead>
         <tr>
           <th>ID</th>

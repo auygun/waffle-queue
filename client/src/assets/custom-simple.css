@@ -41,3 +41,19 @@ body {
 body > main > div > * {
   grid-column: 2;
 }
+
+.fixed_thead {
+  overflow: auto;
+  margin: 0;
+  padding: 0;
+}
+
+.fixed_thead thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.fixed_thead td, .fixed_thead th {
+  border: 0;
+}
