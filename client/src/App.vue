@@ -31,7 +31,11 @@ function onSyncOnEvent(syncOn: boolean) {
   </header>
 
   <main class="content">
-    <RouterView @sync-on-event="onSyncOnEvent"/>
+    <div class="inner">
+      <div class="content">
+        <RouterView @sync-on-event="onSyncOnEvent" />
+      </div>
+    </div>
   </main>
 
   <footer class="footer">

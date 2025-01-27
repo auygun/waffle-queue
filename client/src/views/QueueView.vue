@@ -69,33 +69,37 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <h3>Integration</h3>
-  <input v-model="sourceBranchName" placeholder="Source branch" />&nbsp
-  <button @click="integrate">Request</button>&nbsp
-  <button @click="clear">Clear</button>
+  <div class="header">
+    <h3>Integration</h3>
+    <input v-model="sourceBranchName" placeholder="Source branch" />&nbsp
+    <button @click="integrate">Request</button>&nbsp
+    <button @click="clear">Clear</button>
+  </div>
 
-  <table width="100%">
-    <thead>
-      <tr>
-        <th>ID</th>
-        <th>Branch</th>
-        <th>State</th>
-        <th></th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr v-for="(build, index) in builds" :key="index">
-        <td>{{ build.id }}</td>
-        <td>{{ build.branch }}</td>
-        <td>{{ build.state }}</td>
-        <td>
-          <div>
-            <button @click="abort(build.id)">Abort</button>
-          </div>
-        </td>
-      </tr>
-    </tbody>
-  </table>
+  <div class="content">
+    <table width="100%">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Branch</th>
+          <th>State</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr v-for="(build, index) in builds" :key="index">
+          <td>{{ build.id }}</td>
+          <td>{{ build.branch }}</td>
+          <td>{{ build.state }}</td>
+          <td>
+            <div>
+              <button @click="abort(build.id)">Abort</button>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
 
   <Modal ref="modal" />
 </template>
