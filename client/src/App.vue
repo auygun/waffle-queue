@@ -12,7 +12,7 @@ function onSyncOnEvent(syncOn: boolean) {
 </script>
 
 <template>
-  <header>
+  <header class="header">
     <h1><span class="material-icons">factory</span>WaffleQueue</h1>
     <nav>
       <ul>
@@ -30,11 +30,11 @@ function onSyncOnEvent(syncOn: boolean) {
     </nav>
   </header>
 
-  <main>
+  <main class="content">
     <RouterView @sync-on-event="onSyncOnEvent"/>
   </main>
 
-  <footer>
+  <footer class="footer">
     <p>WaffleQueue was developed by Attila Uygun and is licensed under the MIT license.<br>
       <a href="https://github.com/auygun/waffle-queue">Source code</a>
     </p>
