@@ -59,7 +59,7 @@ async def run(cmd, logger, cwd=None, env=None, output=None, encoding="utf-8"):
                 await asyncio.wait_for(proc.wait(), timeout=10)
             except TimeoutError:
                 proc.kill()
-                logger.warning(f"Killed {cmd[0]}")
+                logger.warn(f"Killed {cmd[0]}")
         except ProcessLookupError:
             pass
         raise

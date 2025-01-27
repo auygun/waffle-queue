@@ -16,7 +16,9 @@ class Logger:
                 max_severity = cursor.fetchone()[0]
         with db.cursor() as cursor:
             cursor.execute("SELECT build_id, timestamp, severity, message"
-                           " FROM logs WHERE severity<=%s ORDER BY id",
+                           " FROM logs WHERE severity<="
+                           " (SELECT rank FROM log_level WHERE severity=%s)"
+                           " ORDER BY id",
                            (max_severity))
             if jsonify:
                 keys = ["build_id", "timestamp", "severity", "message"]
@@ -30,7 +32,11 @@ class Logger:
             if message:
                 self._log(severity, message)
 
+        def noop(_message):
+            pass
+
         if not self.is_log_on(severity):
+            yield noop
             return
         try:
             yield log
@@ -70,8 +76,8 @@ class Logger:
     def error(self, message, commit=True):
         self.log('ERROR', message, commit)
 
-    def warning(self, message, commit=True):
-        self.log('WARNING', message, commit)
+    def warn(self, message, commit=True):
+        self.log('WARN', message, commit)
 
     def info(self, message, commit=True):
         self.log('INFO', message, commit)
