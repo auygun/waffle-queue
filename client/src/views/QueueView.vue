@@ -2,6 +2,7 @@
 import { useAxios } from '@/client/axios'
 import { ref, useTemplateRef, onMounted, onUnmounted } from 'vue'
 import Modal from '@/components/Modal.vue'
+import Paginator from '@/components/Paginator.vue'
 
 const emit = defineEmits<{
   syncOnEvent: [syncOn: boolean]
@@ -74,6 +75,10 @@ onUnmounted(() => {
     <input v-model="sourceBranchName" placeholder="Source branch" />&nbsp
     <button @click="integrate">Request</button>&nbsp
     <button @click="clear">Clear</button>
+  </div>
+
+  <div>
+    <Paginator :totalPages="10" :currentPage="1" />
   </div>
 
   <div style="margin-top: 1rem;"></div>
