@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, type ComputedRef } from 'vue'
+import { computed, type ComputedRef, onMounted } from 'vue'
 
 const props = defineProps({
   maxVisibleButtons: {
@@ -7,103 +7,104 @@ const props = defineProps({
     required: false,
     default: 5,
   },
-  totalPages: {
-    type: Number,
-    required: true,
-  },
-  currentPage: {
+  totalRows: {
     type: Number,
     required: true,
   },
 })
 
-const emit = defineEmits<{
-  pageChanged: [syncOn: number]
-}>()
+const offsetModel = defineModel('offset', {
+  type: Number,
+  required: true,
+})
+
+const rowsPerPageModel = defineModel('rowsPerPage', {
+  type: Number,
+  required: true,
+})
+
+// const emit = defineEmits<{
+//   reload: []
+// }>()
+
+const totalPages: ComputedRef<number> = computed(() => {
+  return Math.ceil(props.totalRows / rowsPerPageModel.value)
+})
 
 const startPage: ComputedRef<number> = computed(() => {
-  // When on the first page
-  if (props.currentPage === 1) {
+  const value: number = currentPage.value - Math.floor(props.maxVisibleButtons / 2)
+  if (value < 1)
     return 1
-  }
+  if (value + props.maxVisibleButtons > totalPages.value)
+    return totalPages.value - props.maxVisibleButtons + 1
+  return value
+})
 
-  // When on the last page
-  if (props.currentPage === props.totalPages) {
-    return props.totalPages - props.maxVisibleButtons
-  }
-
-  // When inbetween
-  return props.currentPage - 1
+const currentPage: ComputedRef<number> = computed(() => {
+  return Math.floor(offsetModel.value / rowsPerPageModel.value) + 1
 })
 
 const pages: ComputedRef<{ name: number, isDisabled: boolean }[]> = computed(() => {
   const range = []
 
   for (let i = startPage.value;
-    i <= Math.min(startPage.value + props.maxVisibleButtons - 1, props.totalPages);
+    i <= Math.min(startPage.value + props.maxVisibleButtons - 1, totalPages.value);
     i++) {
     range.push({
       name: i,
-      isDisabled: i === props.currentPage
+      isDisabled: i === currentPage.value
     })
   }
-
   return range
 })
 
 const isInFirstPage: ComputedRef<boolean> = computed(() => {
-  return props.currentPage === 1;
+  return currentPage.value === 1
 })
 
 const isInLastPage: ComputedRef<boolean> = computed(() => {
-  return props.currentPage === props.totalPages;
+  return currentPage.value === totalPages.value
 })
 
 function isPageActive(page: number) {
-  return props.currentPage === page;
-}
-
-function onClickFirstPage() {
-  emit('pageChanged', 1)
-}
-
-function onClickPreviousPage() {
-  emit('pageChanged', props.currentPage - 1)
+  return currentPage.value === page
 }
 
 function onClickPage(page: number) {
-  emit('pageChanged', page)
+  offsetModel.value = (page - 1) * rowsPerPageModel.value
+  console.assert(offsetModel.value >= 0, `${offsetModel.value} (offset) is negative`)
+  console.assert(offsetModel.value < props.totalRows, `${offsetModel.value} (offset) is greater than ${props.totalRows} (totalRows)`)
 }
 
-function onClickNextPage() {
-  emit('pageChanged', props.currentPage + 1)
-}
-
-function onClickLastPage() {
-  emit('pageChanged', props.totalPages)
-}
+onMounted(() => {
+  const remainder = offsetModel.value % rowsPerPageModel.value
+  console.assert(remainder == 0, `${offsetModel.value} (offset) is not multiple of ${rowsPerPageModel.value} (rowsPerPage)`)
+  if (remainder > 0) {
+    offsetModel.value -= remainder
+  }
+})
 </script>
 
 <template>
   <div class="paginator">
-    <button @click="onClickFirstPage" :disabled="isInFirstPage">
+    <button @click="onClickPage(1)" :disabled="isInFirstPage">
       <span class="material-icons">first_page</span>
     </button>
 
-    <button @click="onClickPreviousPage" :disabled="isInFirstPage">
+    <button @click="onClickPage(currentPage - 1)" :disabled="isInFirstPage">
       <span class="material-icons">navigate_before</span>
     </button>
 
     <button v-for="page in pages" :key="page.name" :disabled="page.isDisabled"
-      :class="{ activepage: isPageActive(page.name) }" @click="onClickPage(page.name)">
+      :class="{ 'active-page': isPageActive(page.name) }" @click="onClickPage(page.name)">
       {{ page.name }}
     </button>
 
-    <button @click="onClickNextPage" :disabled="isInLastPage">
+    <button @click="onClickPage(currentPage + 1)" :disabled="isInLastPage">
       <span class="material-icons">navigate_next</span>
     </button>
 
-    <button @click="onClickLastPage" :disabled="isInLastPage">
+    <button @click="onClickPage(totalPages)" :disabled="isInLastPage">
       <span class="material-icons">last_page</span>
     </button>
   </div>
@@ -118,20 +119,20 @@ function onClickLastPage() {
 .paginator>button {
   margin: 0.2rem;
   text-align: center;
-  width: 2.6rem;
+  min-width: 2.6rem;
   height: 2.6rem;
   background-color: transparent;
   border: 1px solid;
   border-color: transparent;
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--text-light);
 }
 
 .paginator>button:enabled:hover {
   border-color: var(--hover);
-  color: var(--accent);
+  color: var(--text-light);
 }
 
-.activepage[disabled] {
+.active-page[disabled] {
   border-color: var(--accent);
   color: var(--accent);
   cursor: default;

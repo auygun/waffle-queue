@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useAxios } from '@/client/axios'
-import { ref, useTemplateRef, onMounted, onUnmounted } from 'vue'
+import { ref, type Ref, useTemplateRef, onMounted, onUnmounted, watch } from 'vue'
 import Modal from '@/components/Modal.vue'
 import Paginator from '@/components/Paginator.vue'
 
@@ -9,9 +9,16 @@ const emit = defineEmits<{
 }>()
 
 // Integration arguments
-const sourceBranchName = ref("")
+const sourceBranchName: Ref<string> = ref("")
 
 const builds = ref([])
+
+const totalRecords: Ref<number> = ref(120)
+const firstRecord: Ref<number> = ref(0)
+const recordsPerPage: Ref<number> = ref(5)
+watch(firstRecord, (fr) => {
+  console.log(fr, firstRecord)
+})
 
 const modal = useTemplateRef('modal')
 const showModal = (msg: string) => modal.value?.showModal(msg)
@@ -54,7 +61,7 @@ async function abort(build_id: number) {
   }
 }
 
-let intervalId
+let intervalId: number
 
 onMounted(async () => {
   await getBuilds()
@@ -77,9 +84,7 @@ onUnmounted(() => {
     <button @click="clear">Clear</button>
   </div>
 
-  <div>
-    <Paginator :totalPages="10" :currentPage="1" />
-  </div>
+  <Paginator :total-rows="totalRecords" v-model:offset="firstRecord" v-model:rows-per-page="recordsPerPage" />
 
   <div style="margin-top: 1rem;"></div>
 
