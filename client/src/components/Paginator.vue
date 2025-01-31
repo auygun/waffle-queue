@@ -23,10 +23,6 @@ const rowsPerPageModel = defineModel('rowsPerPage', {
   required: true,
 })
 
-// const emit = defineEmits<{
-//   reload: []
-// }>()
-
 const totalPages: ComputedRef<number> = computed(() => {
   return Math.ceil(props.totalRows / rowsPerPageModel.value)
 })
@@ -124,12 +120,13 @@ onMounted(() => {
   background-color: transparent;
   border: 1px solid;
   border-color: transparent;
-  color: var(--text-light);
+  color: var(--text);
+  transition: none;
 }
 
 .paginator>button:enabled:hover {
-  border-color: var(--hover);
-  color: var(--text-light);
+  border-color: var(--border);
+  color: var(--text);
 }
 
 .active-page[disabled] {
@@ -139,6 +136,6 @@ onMounted(() => {
 }
 
 .paginator>button>span {
-  vertical-align: middle;
+  vertical-align: top;
 }
 </style>
