@@ -78,7 +78,6 @@ function onClickPage(page: number) {
 
 onMounted(() => {
   const remainder = offsetModel.value % rowsPerPageModel.value
-  console.assert(remainder == 0, `${offsetModel.value} (offset) is not multiple of ${rowsPerPageModel.value} (rowsPerPage)`)
   if (remainder > 0) {
     offsetModel.value -= remainder
   }
@@ -87,35 +86,47 @@ onMounted(() => {
 
 <template>
   <div class="paginator">
-    <button @click="onClickPage(1)" :disabled="isInFirstPage">
+    <button class="paginator-button" @click="onClickPage(1)" :disabled="isInFirstPage">
       <span class="material-icons">first_page</span>
     </button>
 
-    <button @click="onClickPage(currentPage - 1)" :disabled="isInFirstPage">
+    <button class="paginator-button" @click="onClickPage(currentPage - 1)" :disabled="isInFirstPage">
       <span class="material-icons">navigate_before</span>
     </button>
 
-    <button v-for="page in pages" :key="page.name" :disabled="page.isDisabled"
+    <button class="paginator-button" v-for="page in pages" :key="page.name" :disabled="page.isDisabled"
       :class="{ 'active-page': isPageActive(page.name) }" @click="onClickPage(page.name)">
       {{ page.name }}
     </button>
 
-    <button @click="onClickPage(currentPage + 1)" :disabled="isInLastPage">
+    <button class="paginator-button" @click="onClickPage(currentPage + 1)" :disabled="isInLastPage">
       <span class="material-icons">navigate_next</span>
     </button>
 
-    <button @click="onClickPage(totalPages)" :disabled="isInLastPage">
+    <button class="paginator-button" @click="onClickPage(totalPages)" :disabled="isInLastPage">
       <span class="material-icons">last_page</span>
+    </button>
+
+    <button class="paginator-button" @click="onClickPage(totalPages)">
+      <span class="material-icons">remove_circle_outline</span>
+    </button>
+    <button class="paginator-button" @click="onClickPage(totalPages)">
+      <span class="material-icons">add_circle_outline</span>
     </button>
   </div>
 </template>
 
 <style scoped>
 .paginator {
-  text-align: center;
+  display: flex;
+  flex-wrap: wrap;
+  /* for horizontal aligning of child elements */
+  justify-content: center;
+  /* for vertical aligning */
+  align-items: center;
 }
 
-.paginator>button {
+button.paginator-button {
   margin: 0.2rem;
   text-align: center;
   min-width: 2.6rem;
@@ -127,7 +138,7 @@ onMounted(() => {
   transition: none;
 }
 
-.paginator>button:enabled:hover {
+button:enabled:hover.paginator-button {
   border-color: var(--border);
   color: var(--text);
 }
@@ -136,9 +147,5 @@ onMounted(() => {
   border-color: var(--accent);
   color: var(--accent);
   cursor: default;
-}
-
-.paginator>button>span {
-  vertical-align: top;
 }
 </style>
