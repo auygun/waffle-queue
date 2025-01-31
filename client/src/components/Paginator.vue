@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, type ComputedRef, onMounted } from 'vue'
+import ReloadButton from '@/components/ReloadButton.vue'
 
 const props = defineProps({
   maxVisibleButtons: {
@@ -9,6 +10,10 @@ const props = defineProps({
   },
   totalRows: {
     type: Number,
+    required: true,
+  },
+  loading: {
+    type: Boolean,
     required: true,
   },
 })
@@ -22,6 +27,10 @@ const rowsPerPageModel = defineModel('rowsPerPage', {
   type: Number,
   required: true,
 })
+
+const emit = defineEmits<{
+  reload: []
+}>()
 
 const totalPages: ComputedRef<number> = computed(() => {
   return Math.ceil(props.totalRows / rowsPerPageModel.value)
@@ -86,6 +95,8 @@ onMounted(() => {
 
 <template>
   <div class="paginator">
+    <ReloadButton :loading="loading" @reload="emit('reload')" />
+
     <button class="paginator-button" @click="onClickPage(1)" :disabled="isInFirstPage">
       <span class="material-icons">first_page</span>
     </button>
@@ -107,10 +118,10 @@ onMounted(() => {
       <span class="material-icons">last_page</span>
     </button>
 
-    <button class="paginator-button" @click="onClickPage(totalPages)">
+    <button class="paginator-button">
       <span class="material-icons">remove_circle_outline</span>
     </button>
-    <button class="paginator-button" @click="onClickPage(totalPages)">
+    <button class="paginator-button">
       <span class="material-icons">add_circle_outline</span>
     </button>
   </div>

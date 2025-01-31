@@ -84,7 +84,8 @@ onUnmounted(() => {
     <button @click="clear">Clear</button>
   </div>
 
-  <Paginator :total-rows="totalRecords" v-model:offset="firstRecord" v-model:rows-per-page="recordsPerPage" />
+  <Paginator :loading="false" :total-rows="totalRecords" v-model:offset="firstRecord"
+    v-model:rows-per-page="recordsPerPage" />
 
   <div style="margin-top: 1rem;"></div>
 
