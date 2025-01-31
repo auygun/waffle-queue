@@ -5,7 +5,7 @@ const props = defineProps({
   maxVisibleButtons: {
     type: Number,
     required: false,
-    default: 5,
+    default: 6,
   },
   totalRows: {
     type: Number,
@@ -27,12 +27,16 @@ const totalPages: ComputedRef<number> = computed(() => {
   return Math.ceil(props.totalRows / rowsPerPageModel.value)
 })
 
-const startPage: ComputedRef<number> = computed(() => {
+const startPage: ComputedRef<number> = computed((previous) => {
   const value: number = currentPage.value - Math.floor(props.maxVisibleButtons / 2)
   if (value < 1)
     return 1
   if (value + props.maxVisibleButtons > totalPages.value)
     return totalPages.value - props.maxVisibleButtons + 1
+  if (previous && props.maxVisibleButtons % 2 == 0 &&
+    previous > value && currentPage.value - value == props.maxVisibleButtons / 2) {
+    return value + 1
+  }
   return value
 })
 
@@ -109,7 +113,6 @@ onMounted(() => {
 <style scoped>
 .paginator {
   text-align: center;
-  white-space: nowrap;
 }
 
 .paginator>button {
