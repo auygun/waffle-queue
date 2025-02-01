@@ -16,6 +16,7 @@ const builds = ref([])
 const totalRecords: Ref<number> = ref(0)
 const page: Ref<number> = ref(1)
 const recordsPerPage: Ref<number> = ref(5)
+const loading: Ref<boolean> = ref(true)
 
 watch([page, recordsPerPage], async () => {
   await getBuilds()
@@ -44,6 +45,7 @@ async function clear() {
 }
 
 async function getBuilds() {
+  loading.value = true
   try {
     const response = await useAxios().get('/api/v1/builds', {
       offset: (page.value - 1) * recordsPerPage.value,
@@ -54,6 +56,8 @@ async function getBuilds() {
     emit('syncOnEvent', true)
   } catch (error) {
     emit('syncOnEvent', false)
+  } finally {
+    loading.value = false
   }
 }
 
@@ -79,7 +83,7 @@ onMounted(async () => {
     <button @click="clear">Clear</button>
   </div>
 
-  <Paginator :loading="false" :total-rows="totalRecords" v-model:page="page" v-model:rows-per-page="recordsPerPage"
+  <Paginator :loading="loading" :total-rows="totalRecords" v-model:page="page" v-model:rows-per-page="recordsPerPage"
     @reload="async () => { await getBuilds() }" />
 
   <div style="margin-top: 1rem;"></div>

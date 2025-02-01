@@ -1,5 +1,5 @@
 <script setup lang="ts">
-defineProps({
+const props = defineProps({
   loading: {
     type: Boolean,
     required: true,
@@ -9,10 +9,14 @@ defineProps({
 const emit = defineEmits<{
   reload: []
 }>()
+
+function onReload() {
+  if (!props.loading) emit('reload')
+}
 </script>
 
 <template>
-  <button class="reload-button" @click="emit('reload')">
+  <button class="reload-button" @click="onReload">
     <span class="material-icons" :class="{ 'spinning-icon': loading }">refresh</span>
   </button>
 </template>
