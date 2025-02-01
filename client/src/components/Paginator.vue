@@ -1,6 +1,9 @@
 <script setup lang="ts">
-import { computed, type ComputedRef, watch } from 'vue'
+import { computed, type ComputedRef, watch, onMounted } from 'vue'
 import ReloadButton from '@/components/ReloadButton.vue'
+
+const DEFAULT_CURRENT_PAGE = 'CurrentPage'
+const DEFAULT_ROWS_PER_PAGE = 'RowsPerPage'
 
 const props = defineProps({
   maxVisibleButtons: {
@@ -16,6 +19,11 @@ const props = defineProps({
     type: Boolean,
     required: true,
   },
+  storagePrefix: {
+    type: String,
+    required: false,
+    default: '',
+  }
 })
 
 const currentPageModel = defineModel('page', {
@@ -40,6 +48,14 @@ watch(
       currentPageModel.value = numPages === 0 ? 1 : numPages
   }
 )
+
+watch([currentPageModel, rowsPerPageModel], ([newCurrentPage, newRowsPerPageModel]) => {
+  if (!props.storagePrefix)
+    return
+
+  localStorage.setItem(`${props.storagePrefix}DEFAULT_CURRENT_PAGE`, newCurrentPage.toString())
+  localStorage.setItem(`${props.storagePrefix}DEFAULT_ROWS_PER_PAGE`, newRowsPerPageModel.toString())
+})
 
 const totalPages: ComputedRef<number> = computed(() => {
   return Math.ceil(props.totalRows / rowsPerPageModel.value)
@@ -107,6 +123,31 @@ function onClickRowsPerPage(delta: number) {
     currentPageModel.value = numPages
   }
 }
+
+function loadFromLocalStorage() {
+  if (!props.storagePrefix)
+    return
+
+  try {
+    const cachedCurrentPage = localStorage.getItem(`${props.storagePrefix}DEFAULT_CURRENT_PAGE`)
+    const cachedRowsPerPage = localStorage.getItem(`${props.storagePrefix}DEFAULT_ROWS_PER_PAGE`)
+    if (cachedCurrentPage) {
+      const value = Number(cachedCurrentPage)
+      if (value >= 0)
+        currentPageModel.value = value
+    }
+    if (cachedRowsPerPage) {
+      const value = Number(cachedRowsPerPage)
+      if (value >= 5 && value <= 30)
+        rowsPerPageModel.value = value
+    }
+  } finally { }
+}
+
+onMounted(() => {
+  loadFromLocalStorage()
+})
+
 </script>
 
 <template>

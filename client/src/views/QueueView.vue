@@ -84,7 +84,7 @@ onMounted(async () => {
   </div>
 
   <Paginator :loading="loading" :total-rows="totalRecords" v-model:page="page" v-model:rows-per-page="recordsPerPage"
-    @reload="async () => { await getBuilds() }" />
+    @reload="async () => { await getBuilds() }" :storage-prefix="String('queueView')" />
 
   <div style="margin-top: 1rem;"></div>
 
