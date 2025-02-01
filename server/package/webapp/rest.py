@@ -40,8 +40,11 @@ def db_commit(_exc):
 
 @bp.route('/builds', methods=['GET'])
 def get_builds():
+    limit = request.args.get("limit", 25, type=int)
+    offset = request.args.get("offset", 0, type=int)
     return {
-        'builds': Build.list(jsonify=True)
+        "count": Build.count(),
+        'content': Build.list(offset, limit, jsonify=True),
     }
 
 

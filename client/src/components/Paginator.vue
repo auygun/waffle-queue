@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, type ComputedRef, onMounted } from 'vue'
+import { computed, type ComputedRef, watch } from 'vue'
 import ReloadButton from '@/components/ReloadButton.vue'
 
 const props = defineProps({
@@ -32,32 +32,48 @@ const emit = defineEmits<{
   reload: []
 }>()
 
+watch(
+  () => props.totalRows,
+  (newValue) => {
+    if (offsetModel.value >= newValue)
+      offsetModel.value = newValue === 0 ? 0 : newValue - 1
+  },
+  { deep: true }
+)
+
 const totalPages: ComputedRef<number> = computed(() => {
   return Math.ceil(props.totalRows / rowsPerPageModel.value)
 })
 
+const numVisibleButtons: ComputedRef<number> = computed(() => {
+  if (totalPages.value < props.maxVisibleButtons)
+    return totalPages.value
+  return props.maxVisibleButtons
+})
+
 const startPage: ComputedRef<number> = computed((previous) => {
-  const value: number = currentPage.value - Math.floor(props.maxVisibleButtons / 2)
+  const value: number = currentPage.value - Math.floor(numVisibleButtons.value / 2)
   if (value < 1)
     return 1
-  if (value + props.maxVisibleButtons > totalPages.value)
-    return totalPages.value - props.maxVisibleButtons + 1
-  if (previous && props.maxVisibleButtons % 2 == 0 &&
-    previous > value && currentPage.value - value == props.maxVisibleButtons / 2) {
+  if (value + numVisibleButtons.value > totalPages.value)
+    return totalPages.value - numVisibleButtons.value + 1
+  if (previous && numVisibleButtons.value % 2 == 0 &&
+    previous > value && currentPage.value - value == numVisibleButtons.value / 2) {
     return value + 1
   }
   return value
 })
 
 const currentPage: ComputedRef<number> = computed(() => {
-  return Math.floor(offsetModel.value / rowsPerPageModel.value) + 1
+  const page: number = Math.floor(offsetModel.value / rowsPerPageModel.value) + 1
+  return page
 })
 
 const pages: ComputedRef<{ name: number, isDisabled: boolean }[]> = computed(() => {
   const range = []
 
   for (let i = startPage.value;
-    i <= Math.min(startPage.value + props.maxVisibleButtons - 1, totalPages.value);
+    i <= Math.min(startPage.value + numVisibleButtons.value - 1, totalPages.value);
     i++) {
     range.push({
       name: i,
@@ -68,11 +84,11 @@ const pages: ComputedRef<{ name: number, isDisabled: boolean }[]> = computed(() 
 })
 
 const isInFirstPage: ComputedRef<boolean> = computed(() => {
-  return currentPage.value === 1
+  return totalPages.value === 0 || currentPage.value === 1
 })
 
 const isInLastPage: ComputedRef<boolean> = computed(() => {
-  return currentPage.value === totalPages.value
+  return totalPages.value === 0 ? true : currentPage.value === totalPages.value
 })
 
 function isPageActive(page: number) {
@@ -81,16 +97,7 @@ function isPageActive(page: number) {
 
 function onClickPage(page: number) {
   offsetModel.value = (page - 1) * rowsPerPageModel.value
-  console.assert(offsetModel.value >= 0, `${offsetModel.value} (offset) is negative`)
-  console.assert(offsetModel.value < props.totalRows, `${offsetModel.value} (offset) is greater than ${props.totalRows} (totalRows)`)
 }
-
-onMounted(() => {
-  const remainder = offsetModel.value % rowsPerPageModel.value
-  if (remainder > 0) {
-    offsetModel.value -= remainder
-  }
-})
 </script>
 
 <template>

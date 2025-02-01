@@ -34,9 +34,17 @@ class Build(Entity):
         return Build(*cursor.fetchone())
 
     @staticmethod
-    def list(jsonify=False):
+    def count():
         with db.cursor() as cursor:
-            cursor.execute("SELECT id FROM builds ORDER BY id DESC")
+            cursor.execute("SELECT COUNT(*) FROM builds")
+        return cursor.fetchone()[0]
+
+    @staticmethod
+    def list(offset, limit, jsonify=False):
+        print(offset, limit)
+        with db.cursor() as cursor:
+            cursor.execute("SELECT id FROM builds ORDER BY id DESC"
+                           " LIMIT %s OFFSET %s", (limit, offset))
             if jsonify:
                 return [Build(*row).jsonify() for row in cursor]
             else:

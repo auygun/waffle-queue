@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useAxios } from '@/client/axios'
-import { ref, type Ref, useTemplateRef, onMounted, onUnmounted, watch } from 'vue'
+import { ref, type Ref, useTemplateRef, onMounted, watch } from 'vue'
 import Modal from '@/components/Modal.vue'
 import Paginator from '@/components/Paginator.vue'
 
@@ -13,11 +13,12 @@ const sourceBranchName: Ref<string> = ref("")
 
 const builds = ref([])
 
-const totalRecords: Ref<number> = ref(120)
+const totalRecords: Ref<number> = ref(0)
 const firstRecord: Ref<number> = ref(0)
 const recordsPerPage: Ref<number> = ref(5)
-watch(firstRecord, (fr) => {
-  console.log(fr, firstRecord)
+
+watch([firstRecord, recordsPerPage], async (fr) => {
+  await getBuilds()
 })
 
 const modal = useTemplateRef('modal')
@@ -44,8 +45,12 @@ async function clear() {
 
 async function getBuilds() {
   try {
-    const response = await useAxios().get('/api/v1/builds')
-    builds.value = response.data.builds
+    const response = await useAxios().get('/api/v1/builds', {
+      offset: firstRecord.value,
+      limit: recordsPerPage.value,
+    })
+    totalRecords.value = response.data.count
+    builds.value = response.data.content
     emit('syncOnEvent', true)
   } catch (error) {
     emit('syncOnEvent', false)
@@ -61,18 +66,8 @@ async function abort(build_id: number) {
   }
 }
 
-let intervalId: number
-
 onMounted(async () => {
   await getBuilds()
-
-  intervalId = setInterval(async () => {
-    await getBuilds()
-  }, 1000)
-})
-
-onUnmounted(() => {
-  clearInterval(intervalId)
 })
 </script>
 
@@ -85,7 +80,7 @@ onUnmounted(() => {
   </div>
 
   <Paginator :loading="false" :total-rows="totalRecords" v-model:offset="firstRecord"
-    v-model:rows-per-page="recordsPerPage" />
+    v-model:rows-per-page="recordsPerPage" @reload="async () => { await getBuilds() }" />
 
   <div style="margin-top: 1rem;"></div>
 
