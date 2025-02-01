@@ -17,7 +17,8 @@ function onReload() {
 
 <template>
   <button class="reload-button" @click="onReload">
-    <span class="material-icons" :class="{ 'spinning-icon': loading }">refresh</span>
+    <span v-if="!loading" class="material-icons">refresh</span>
+    <span v-if="loading" class="loader"></span>
   </button>
 </template>
 
@@ -28,7 +29,15 @@ function onReload() {
   height: 2.6rem;
 }
 
-.spinning-icon {
+.loader {
+  margin: 0.2rem;
+  width: 1.1rem;
+  height: 1.1rem;
+  border-radius: 50%;
+  display: inline-block;
+  border-top: 3px solid var(--accent-text);
+  border-right: 3px solid transparent;
+  box-sizing: border-box;
   animation: rotation 0.5s linear infinite;
 }
 
