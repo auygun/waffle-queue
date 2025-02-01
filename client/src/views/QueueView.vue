@@ -14,10 +14,10 @@ const sourceBranchName: Ref<string> = ref("")
 const builds = ref([])
 
 const totalRecords: Ref<number> = ref(0)
-const firstRecord: Ref<number> = ref(0)
+const page: Ref<number> = ref(1)
 const recordsPerPage: Ref<number> = ref(5)
 
-watch([firstRecord, recordsPerPage], async (fr) => {
+watch([page, recordsPerPage], async () => {
   await getBuilds()
 })
 
@@ -46,7 +46,7 @@ async function clear() {
 async function getBuilds() {
   try {
     const response = await useAxios().get('/api/v1/builds', {
-      offset: firstRecord.value,
+      offset: (page.value - 1) * recordsPerPage.value,
       limit: recordsPerPage.value,
     })
     totalRecords.value = response.data.count
@@ -79,8 +79,8 @@ onMounted(async () => {
     <button @click="clear">Clear</button>
   </div>
 
-  <Paginator :loading="false" :total-rows="totalRecords" v-model:offset="firstRecord"
-    v-model:rows-per-page="recordsPerPage" @reload="async () => { await getBuilds() }" />
+  <Paginator :loading="false" :total-rows="totalRecords" v-model:page="page" v-model:rows-per-page="recordsPerPage"
+    @reload="async () => { await getBuilds() }" />
 
   <div style="margin-top: 1rem;"></div>
 

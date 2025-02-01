@@ -18,7 +18,7 @@ const props = defineProps({
   },
 })
 
-const offsetModel = defineModel('offset', {
+const currentPageModel = defineModel('page', {
   type: Number,
   required: true,
 })
@@ -35,10 +35,10 @@ const emit = defineEmits<{
 watch(
   () => props.totalRows,
   (newValue) => {
-    if (offsetModel.value >= newValue)
-      offsetModel.value = newValue === 0 ? 0 : newValue - 1
-  },
-  { deep: true }
+    const numPages: number = Math.ceil(newValue / rowsPerPageModel.value)
+    if (currentPageModel.value >= numPages)
+      currentPageModel.value = numPages === 0 ? 1 : numPages
+  }
 )
 
 const totalPages: ComputedRef<number> = computed(() => {
@@ -52,21 +52,16 @@ const numVisibleButtons: ComputedRef<number> = computed(() => {
 })
 
 const startPage: ComputedRef<number> = computed((previous) => {
-  const value: number = currentPage.value - Math.floor(numVisibleButtons.value / 2)
+  const value: number = currentPageModel.value - Math.floor(numVisibleButtons.value / 2)
   if (value < 1)
     return 1
   if (value + numVisibleButtons.value > totalPages.value)
     return totalPages.value - numVisibleButtons.value + 1
-  if (previous && numVisibleButtons.value % 2 == 0 &&
-    previous > value && currentPage.value - value == numVisibleButtons.value / 2) {
+  if (previous && numVisibleButtons.value % 2 === 0 &&
+    previous > value && currentPageModel.value - value === numVisibleButtons.value / 2) {
     return value + 1
   }
   return value
-})
-
-const currentPage: ComputedRef<number> = computed(() => {
-  const page: number = Math.floor(offsetModel.value / rowsPerPageModel.value) + 1
-  return page
 })
 
 const pages: ComputedRef<{ name: number, isDisabled: boolean }[]> = computed(() => {
@@ -77,26 +72,40 @@ const pages: ComputedRef<{ name: number, isDisabled: boolean }[]> = computed(() 
     i++) {
     range.push({
       name: i,
-      isDisabled: i === currentPage.value
+      isDisabled: i === currentPageModel.value
     })
   }
   return range
 })
 
 const isInFirstPage: ComputedRef<boolean> = computed(() => {
-  return totalPages.value === 0 || currentPage.value === 1
+  return totalPages.value === 0 || currentPageModel.value === 1
 })
 
 const isInLastPage: ComputedRef<boolean> = computed(() => {
-  return totalPages.value === 0 ? true : currentPage.value === totalPages.value
+  return totalPages.value === 0 ? true : currentPageModel.value === totalPages.value
 })
 
 function isPageActive(page: number) {
-  return currentPage.value === page
+  return currentPageModel.value === page
 }
 
 function onClickPage(page: number) {
-  offsetModel.value = (page - 1) * rowsPerPageModel.value
+  currentPageModel.value = page
+}
+
+function onClickRowsPerPage(delta: number) {
+  let value: number = rowsPerPageModel.value + delta
+  if (value > 30) {
+    value = 30
+  } else if (value < 5) {
+    value = 5
+  }
+  rowsPerPageModel.value = value;
+  const numPages: number = Math.ceil(props.totalRows / value)
+  if (numPages > 0 && currentPageModel.value > numPages) {
+    currentPageModel.value = numPages
+  }
 }
 </script>
 
@@ -108,7 +117,7 @@ function onClickPage(page: number) {
       <span class="material-icons">first_page</span>
     </button>
 
-    <button class="paginator-button" @click="onClickPage(currentPage - 1)" :disabled="isInFirstPage">
+    <button class="paginator-button" @click="onClickPage(currentPageModel - 1)" :disabled="isInFirstPage">
       <span class="material-icons">navigate_before</span>
     </button>
 
@@ -117,7 +126,7 @@ function onClickPage(page: number) {
       {{ page.name }}
     </button>
 
-    <button class="paginator-button" @click="onClickPage(currentPage + 1)" :disabled="isInLastPage">
+    <button class="paginator-button" @click="onClickPage(currentPageModel + 1)" :disabled="isInLastPage">
       <span class="material-icons">navigate_next</span>
     </button>
 
@@ -125,10 +134,10 @@ function onClickPage(page: number) {
       <span class="material-icons">last_page</span>
     </button>
 
-    <button class="paginator-button">
+    <button class="paginator-button" @click="onClickRowsPerPage(-1)" :disabled="rowsPerPageModel <= 5">
       <span class="material-icons">remove_circle_outline</span>
     </button>
-    <button class="paginator-button">
+    <button class="paginator-button" @click="onClickRowsPerPage(1)" :disabled="rowsPerPageModel >= 30">
       <span class="material-icons">add_circle_outline</span>
     </button>
   </div>
