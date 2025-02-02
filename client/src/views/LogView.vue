@@ -1,43 +1,35 @@
 <script setup lang="ts">
 import { useAxios } from '@/client/axios'
-import { ref, useTemplateRef, onMounted, onUnmounted } from 'vue'
+import { ref, type Ref, useTemplateRef, onMounted } from 'vue'
+import ReloadButton from '@/components/ReloadButton.vue'
 import Modal from '@/components/Modal.vue'
 
-const emit = defineEmits<{
-  syncOnEvent: [syncOn: boolean]
-}>()
-
 const log = ref([])
+const loading: Ref<boolean> = ref(false)
 
 const modal = useTemplateRef('modal')
 const showModal = (msg: string) => modal.value?.showModal(msg)
 
 async function getLog() {
+  loading.value = true
   try {
     const response = await useAxios().get('/api/v1/log')
     log.value = response.data.content
-    emit('syncOnEvent', true)
   } catch (error) {
-    emit('syncOnEvent', false)
+  } finally {
+    loading.value = false
   }
 }
 
-let intervalId
-
 onMounted(async () => {
   await getLog()
-
-  intervalId = setInterval(async () => {
-    await getLog()
-  }, 1000)
-})
-
-onUnmounted(() => {
-  clearInterval(intervalId)
 })
 </script>
 
 <template>
+  <div class="horizontal-bar">
+    <ReloadButton :loading="loading" @reload="async () => { await getLog() }" />
+  </div>
   <pre><code v-for="(entry, index) in log" :key="index" v-bind:title="entry.timestamp">{{ entry.severity }}&#9;{{ entry.message }}<br></code></pre>
 
   <Modal ref="modal" />

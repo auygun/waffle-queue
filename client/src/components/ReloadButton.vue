@@ -16,7 +16,7 @@ function onReload() {
 </script>
 
 <template>
-  <button class="reload-button" @click="onReload">
+  <button class="reload-button" @click="onReload" title="Reload">
     <span v-if="!loading" class="material-icons">refresh</span>
     <span v-if="loading" class="loader"></span>
   </button>

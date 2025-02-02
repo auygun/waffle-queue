@@ -4,10 +4,6 @@ import { ref, type Ref, useTemplateRef, onMounted, watch } from 'vue'
 import Modal from '@/components/Modal.vue'
 import Paginator from '@/components/Paginator.vue'
 
-const emit = defineEmits<{
-  syncOnEvent: [syncOn: boolean]
-}>()
-
 // Integration arguments
 const sourceBranchName: Ref<string> = ref("")
 
@@ -16,7 +12,7 @@ const builds = ref([])
 const totalRecords: Ref<number> = ref(0)
 const page: Ref<number> = ref(1)
 const recordsPerPage: Ref<number> = ref(5)
-const loading: Ref<boolean> = ref(true)
+const loading: Ref<boolean> = ref(false)
 
 watch([page, recordsPerPage], async () => {
   await getBuilds()
@@ -53,9 +49,7 @@ async function getBuilds() {
     })
     totalRecords.value = response.data.count
     builds.value = response.data.content
-    emit('syncOnEvent', true)
   } catch (error) {
-    emit('syncOnEvent', false)
   } finally {
     loading.value = false
   }
