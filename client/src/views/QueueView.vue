@@ -13,6 +13,7 @@ const totalRecords: Ref<number> = ref(0)
 const page: Ref<number> = ref(1)
 const recordsPerPage: Ref<number> = ref(5)
 const loading: Ref<boolean> = ref(false)
+const syncError: Ref<boolean> = ref(false)
 
 watch([page, recordsPerPage], async () => {
   await getBuilds()
@@ -42,6 +43,7 @@ async function clear() {
 
 async function getBuilds() {
   loading.value = true
+  syncError.value = false
   try {
     const response = await useAxios().get('/api/v1/builds', {
       offset: (page.value - 1) * recordsPerPage.value,
@@ -50,6 +52,7 @@ async function getBuilds() {
     totalRecords.value = response.data.count
     builds.value = response.data.content
   } catch (error) {
+    syncError.value = true
   } finally {
     loading.value = false
   }
@@ -77,7 +80,7 @@ onMounted(async () => {
     <button @click="clear">Clear</button>
   </div>
 
-  <Paginator :loading="loading" :total-rows="totalRecords" v-model:page="page" v-model:rows-per-page="recordsPerPage"
+  <Paginator :loading="loading" :sync-error="syncError" :total-rows="totalRecords" v-model:page="page" v-model:rows-per-page="recordsPerPage"
     @reload="async () => { await getBuilds() }" :storage-prefix="String('queueView')" />
 
   <div style="margin-top: 1rem;"></div>

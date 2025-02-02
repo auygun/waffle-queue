@@ -4,6 +4,10 @@ const props = defineProps({
     type: Boolean,
     required: true,
   },
+  syncError: {
+    type: Boolean,
+    required: true,
+  },
 })
 
 const emit = defineEmits<{
@@ -17,8 +21,9 @@ function onReload() {
 
 <template>
   <button class="reload-button" @click="onReload" title="Reload">
-    <span v-if="!loading" class="material-icons">refresh</span>
+    <span v-if="!loading && !syncError" class="material-icons">refresh</span>
     <span v-if="loading" class="loader"></span>
+    <span v-if="!loading && syncError" class="material-icons">sync_problem</span>
   </button>
 </template>
 

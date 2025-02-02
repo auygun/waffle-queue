@@ -19,6 +19,10 @@ const props = defineProps({
     type: Boolean,
     required: true,
   },
+  syncError: {
+    type: Boolean,
+    required: true,
+  },
   storagePrefix: {
     type: String,
     required: false,
@@ -152,7 +156,7 @@ onMounted(() => {
 
 <template>
   <div class="horizontal-bar">
-    <ReloadButton :loading="loading" @reload="emit('reload')" />
+    <ReloadButton :loading="loading" :sync-error="syncError" @reload="emit('reload')" />
 
     <button class="paginator-button" @click="onClickPage(1)" :disabled="isInFirstPage">
       <span class="material-icons">first_page</span>
