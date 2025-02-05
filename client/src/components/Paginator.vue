@@ -1,9 +1,6 @@
 <script setup lang="ts">
-import { computed, type ComputedRef, watch, onMounted } from 'vue'
+import { computed, type ComputedRef, type ModelRef, watch, onMounted } from 'vue'
 import ReloadButton from '@/components/ReloadButton.vue'
-
-const DEFAULT_CURRENT_PAGE = 'CurrentPage'
-const DEFAULT_ROWS_PER_PAGE = 'RowsPerPage'
 
 const props = defineProps({
   maxVisibleButtons: {
@@ -25,8 +22,7 @@ const props = defineProps({
   },
   storagePrefix: {
     type: String,
-    required: false,
-    default: '',
+    required: true,
   }
 })
 
@@ -44,6 +40,9 @@ const emit = defineEmits<{
   reload: []
 }>()
 
+const LAST_CURRENT_PAGE = `${props.storagePrefix}CurrentPage`
+const LAST_ROWS_PER_PAGE = `${props.storagePrefix}RowsPerPage`
+
 watch(
   () => props.totalRows,
   (newValue) => {
@@ -54,11 +53,9 @@ watch(
 )
 
 watch([currentPageModel, rowsPerPageModel], ([newCurrentPage, newRowsPerPageModel]) => {
-  if (!props.storagePrefix)
-    return
-
-  localStorage.setItem(`${props.storagePrefix}DEFAULT_CURRENT_PAGE`, newCurrentPage.toString())
-  localStorage.setItem(`${props.storagePrefix}DEFAULT_ROWS_PER_PAGE`, newRowsPerPageModel.toString())
+  console.log(LAST_CURRENT_PAGE)
+  localStorage.setItem(LAST_CURRENT_PAGE, newCurrentPage.toString())
+  localStorage.setItem(LAST_ROWS_PER_PAGE, newRowsPerPageModel.toString())
 })
 
 const totalPages: ComputedRef<number> = computed(() => {
@@ -128,28 +125,18 @@ function onClickRowsPerPage(delta: number) {
   }
 }
 
-function loadFromLocalStorage() {
-  if (!props.storagePrefix)
-    return
-
+function loadFromLocalStorage(key: string, obj: ModelRef<number>, lower: number, upper: number) {
   try {
-    const cachedCurrentPage = localStorage.getItem(`${props.storagePrefix}DEFAULT_CURRENT_PAGE`)
-    const cachedRowsPerPage = localStorage.getItem(`${props.storagePrefix}DEFAULT_ROWS_PER_PAGE`)
-    if (cachedCurrentPage) {
-      const value = Number(cachedCurrentPage)
-      if (value >= 0)
-        currentPageModel.value = value
-    }
-    if (cachedRowsPerPage) {
-      const value = Number(cachedRowsPerPage)
-      if (value >= 5 && value <= 30)
-        rowsPerPageModel.value = value
-    }
+    const cached: string | null = localStorage.getItem(key)
+    const value: number | null = cached ? parseInt(cached) : null
+    if (value && value >= lower && value <= upper)
+      obj.value = value
   } finally { }
 }
 
 onMounted(() => {
-  loadFromLocalStorage()
+  loadFromLocalStorage(LAST_CURRENT_PAGE, currentPageModel, 0, Number.MAX_VALUE)
+  loadFromLocalStorage(LAST_ROWS_PER_PAGE, rowsPerPageModel, 5, 30)
 })
 
 </script>

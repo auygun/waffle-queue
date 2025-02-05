@@ -5,7 +5,6 @@
     <h4>Third-party software</h4>
     <a href="https://github.com/vuejs/" target="_blank">vue</a><br>
     <a href="https://github.com/axios/axios" target="_blank">axios</a><br>
-    <a href="https://github.com/vuejs/pinia" target="_blank">pinia</a><br>
     <a href="https://github.com/kevquirk/simple.css" target="_blank">simple.css</a><br>
     <a href="https://github.com/marella/material-icons" target="_blank">material-icons</a><br>
     <a href="https://github.com/pallets/flask/" target="_blank">flask</a><br>

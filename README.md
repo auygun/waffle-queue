@@ -66,7 +66,6 @@ cd server
 ## Third-party software:
 [vue](https://github.com/vuejs/),
 [axios](https://github.com/axios/axios),
-[pinia](https://github.com/vuejs/pinia),
 [simple.css](https://github.com/kevquirk/simple.css),
 [material-icons](https://github.com/marella/material-icons),
 [flask](https://github.com/pallets/flask/),
