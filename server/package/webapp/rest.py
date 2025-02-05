@@ -42,6 +42,8 @@ def db_commit(_exc):
 def get_builds():
     limit = request.args.get("limit", 25, type=int)
     offset = request.args.get("offset", 0, type=int)
+    if limit < 1 or limit > 100 or offset < 0:
+        return abort(400)
     return {
         "count": Build.count(),
         'content': Build.list(offset, limit, jsonify=True),
