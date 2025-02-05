@@ -13,6 +13,11 @@ const router = createRouter({
       component: () => import('../views/QueueView.vue'),
     },
     {
+      path: '/integration',
+      name: 'integration',
+      component: () => import('../views/IntegrationView.vue'),
+    },
+    {
       path: '/log',
       name: 'log',
       component: () => import('../views/LogView.vue'),

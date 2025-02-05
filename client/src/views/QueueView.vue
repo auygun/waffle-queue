@@ -4,9 +4,6 @@ import { ref, type Ref, useTemplateRef, onMounted, watch } from 'vue'
 import Modal from '@/components/Modal.vue'
 import Paginator from '@/components/Paginator.vue'
 
-// Integration arguments
-const sourceBranchName: Ref<string> = ref("")
-
 const builds = ref([])
 
 const totalRecords: Ref<number> = ref(0)
@@ -21,25 +18,6 @@ watch([page, recordsPerPage], async () => {
 
 const modal = useTemplateRef('modal')
 const showModal = (msg: string) => modal.value?.showModal(msg)
-
-async function integrate() {
-  try {
-    const formData = new FormData()
-    formData.append('branch', sourceBranchName.value)
-    await useAxios().postFormData('/api/v1/integrate', formData)
-  } catch (error) {
-    showModal(error)
-  }
-}
-
-async function clear() {
-  try {
-    const formData = new FormData()
-    await useAxios().postFormData('/api/v1/dev/clear', formData)
-  } catch (error) {
-    showModal(error)
-  }
-}
 
 async function getBuilds() {
   loading.value = true
@@ -73,15 +51,9 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div>
-    <h3>Integration</h3>
-    <input v-model="sourceBranchName" placeholder="Source branch" />&nbsp
-    <button @click="integrate">Request</button>&nbsp
-    <button @click="clear">Clear</button>
-  </div>
-
-  <Paginator :loading="loading" :sync-error="syncError" :total-rows="totalRecords" v-model:page="page" v-model:rows-per-page="recordsPerPage"
-    @reload="async () => { await getBuilds() }" :storage-prefix="String('queueView')" />
+  <Paginator :loading="loading" :sync-error="syncError" :total-rows="totalRecords" v-model:page="page"
+    v-model:rows-per-page="recordsPerPage" @reload="async () => { await getBuilds() }"
+    :storage-prefix="String('queueView')" />
 
   <div style="margin-top: 1rem;"></div>
 
