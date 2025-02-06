@@ -1,5 +1,14 @@
 <script setup lang="ts">
 import { RouterLink, RouterView } from 'vue-router'
+import { useTemplateRef } from 'vue'
+import Toast from '@/components/Toast.vue'
+
+const toast = useTemplateRef('toast')
+const showToast = (msg: string) => toast.value?.showToast(msg)
+
+function onToastEvent(message: string) {
+  showToast(message)
+}
 </script>
 
 <template>
@@ -26,7 +35,8 @@ import { RouterLink, RouterView } from 'vue-router'
   <main class="content">
     <div class="inner">
       <div class="content">
-        <RouterView />
+        <RouterView @toast-event="onToastEvent" />
+        <Toast ref="toast" />
       </div>
     </div>
   </main>

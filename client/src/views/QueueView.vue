@@ -1,8 +1,11 @@
 <script setup lang="ts">
 import { useAxios } from '@/client/axios'
 import { ref, type Ref, useTemplateRef, onMounted, watch } from 'vue'
-import Modal from '@/components/Modal.vue'
 import Paginator from '@/components/Paginator.vue'
+
+const emit = defineEmits<{
+  toastEvent: [message: string]
+}>()
 
 const builds = ref([])
 
@@ -15,9 +18,6 @@ const syncError: Ref<boolean> = ref(false)
 watch([page, recordsPerPage], async () => {
   await getBuilds()
 })
-
-const modal = useTemplateRef('modal')
-const showModal = (msg: string) => modal.value?.showModal(msg)
 
 async function getBuilds() {
   loading.value = true
@@ -41,7 +41,7 @@ async function abort(build_id: number) {
     const formData = new FormData()
     await useAxios().postFormData(`/api/v1/abort/${build_id}`, formData)
   } catch (error) {
-    showModal(error)
+    emit('toastEvent', error)
   }
 }
 
@@ -83,8 +83,6 @@ onMounted(async () => {
   </div>
 
   <div style="margin-top: 1rem;"></div>
-
-  <Modal ref="modal" />
 </template>
 
 <style scoped>

@@ -1,16 +1,16 @@
 <script setup lang="ts">
 import { useAxios } from '@/client/axios'
 import { ref, type Ref, useTemplateRef } from 'vue'
-import Modal from '@/components/Modal.vue'
 import TextInput from '@/components/TextInput.vue'
+
+const emit = defineEmits<{
+  toastEvent: [message: string]
+}>()
 
 const remoteUrl: Ref<string> = ref("")
 const sourceBranch: Ref<string> = ref("")
 const targetBranch: Ref<string> = ref("")
 const buildScript: Ref<string> = ref("")
-
-const modal = useTemplateRef('modal')
-const showModal = (msg: string) => modal.value?.showModal(msg)
 
 async function integrate() {
   try {
@@ -18,7 +18,7 @@ async function integrate() {
     formData.append('branch', sourceBranch.value)
     await useAxios().postFormData('/api/v1/integrate', formData)
   } catch (error) {
-    showModal(error)
+    emit('toastEvent', error)
   }
 }
 </script>
@@ -34,8 +34,6 @@ async function integrate() {
   <div class="center">
     <button @click="integrate">Request</button>
   </div>
-
-  <Modal ref="modal" />
 </template>
 
 <style scoped>
