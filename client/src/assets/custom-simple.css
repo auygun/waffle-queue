@@ -71,12 +71,3 @@ body > main > div > * {
 .fixed_thead td, .fixed_thead th {
   border: 0;
 }
-
-.horizontal-bar {
-  display: flex;
-  flex-wrap: wrap;
-  /* for horizontal aligning of child elements */
-  justify-content: center;
-  /* for vertical aligning */
-  align-items: center;
-}

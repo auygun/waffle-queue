@@ -30,10 +30,16 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="horizontal-bar">
+  <div class="center">
     <ReloadButton :loading="loading" :sync-error="syncError" @reload="async () => { await getLog() }" />
   </div>
   <pre><code v-for="(entry, index) in log" :key="index" v-bind:title="entry.timestamp">{{ entry.severity }}&#9;{{ entry.message }}<br></code></pre>
 
   <Modal ref="modal" />
 </template>
+
+<style scoped>
+.center {
+  text-align: center;
+}
+</style>

@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div class="center">
     <h3>About WaffleQueue</h3>
     <p>My simple CI/CD project</p>
     <h4>Third-party software</h4>
@@ -15,7 +15,7 @@
 </template>
 
 <style scoped>
-div {
+.center {
   text-align: center;
 }
 </style>

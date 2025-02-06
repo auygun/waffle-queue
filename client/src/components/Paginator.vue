@@ -142,7 +142,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="horizontal-bar">
+  <div class="paginator">
     <ReloadButton :loading="loading" :sync-error="syncError" @reload="emit('reload')" />
 
     <button class="paginator-button" @click="onClickPage(1)" :disabled="isInFirstPage">
@@ -176,6 +176,15 @@ onMounted(() => {
 </template>
 
 <style scoped>
+.paginator {
+  display: flex;
+  flex-wrap: wrap;
+  /* for horizontal aligning of child elements */
+  justify-content: center;
+  /* for vertical aligning */
+  align-items: center;
+}
+
 button.paginator-button {
   margin: 0.2rem;
   text-align: center;
