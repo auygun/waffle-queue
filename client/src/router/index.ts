@@ -13,9 +13,9 @@ const router = createRouter({
       component: () => import('../views/QueueView.vue'),
     },
     {
-      path: '/integration',
-      name: 'integration',
-      component: () => import('../views/IntegrationView.vue'),
+      path: '/request',
+      name: 'request',
+      component: () => import('../views/RequestView.vue'),
     },
     {
       path: '/log',

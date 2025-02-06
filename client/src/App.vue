@@ -11,7 +11,7 @@ import { RouterLink, RouterView } from 'vue-router'
           <RouterLink to="/queue">Build Queue</RouterLink>
         </li>
         <li>
-          <RouterLink to="/integration">Integration</RouterLink>
+          <RouterLink to="/request">Request</RouterLink>
         </li>
         <li>
           <RouterLink to="/log">Log</RouterLink>
