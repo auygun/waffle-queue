@@ -53,7 +53,6 @@ watch(
 )
 
 watch([currentPageModel, rowsPerPageModel], ([newCurrentPage, newRowsPerPageModel]) => {
-  console.log(LAST_CURRENT_PAGE)
   localStorage.setItem(LAST_CURRENT_PAGE, newCurrentPage.toString())
   localStorage.setItem(LAST_ROWS_PER_PAGE, newRowsPerPageModel.toString())
 })

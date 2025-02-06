@@ -2,6 +2,7 @@
 import { useAxios } from '@/client/axios'
 import { ref, type Ref, useTemplateRef } from 'vue'
 import Modal from '@/components/Modal.vue'
+import TextInput from '@/components/TextInput.vue'
 
 const remoteUrl: Ref<string> = ref("")
 const sourceBranch: Ref<string> = ref("")
@@ -24,12 +25,12 @@ async function integrate() {
 
 <template>
   <h3 class="center">Request integration</h3>
-  <input v-model="remoteUrl" placeholder="Remote URL" />
+  <TextInput :icon="'alternate_email'" :placeholder="'Remote URL'" v-model:text="remoteUrl" />
   <div class="fit-stretch">
-    <input v-model="sourceBranch" placeholder="Source branch" />
-    <input v-model="targetBranch" placeholder="Target branch" />
+    <TextInput :icon="'merge_type'" :placeholder="'Source branch'" v-model:text="sourceBranch" />
+    <TextInput :icon="'merge_type'" :placeholder="'Target branch'" v-model:text="targetBranch" />
   </div>
-  <input v-model="buildScript" placeholder="Build script" />
+  <TextInput :icon="'directions_run'" :placeholder="'Build script'" v-model:text="buildScript" />
   <div class="center">
     <button @click="integrate">Request</button>
   </div>
@@ -45,7 +46,7 @@ async function integrate() {
 }
 
 .fit-stretch>* {
-  flex: 1;
+  flex: 1 1 auto;
 }
 
 .center {
