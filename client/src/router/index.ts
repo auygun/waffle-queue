@@ -10,6 +10,7 @@ const router = createRouter({
     {
       path: '/queue',
       name: 'queue',
+      props: (route) => ({ offset: route.query.offset }),
       component: () => import('../views/QueueView.vue'),
     },
     {

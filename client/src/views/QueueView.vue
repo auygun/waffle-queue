@@ -1,7 +1,17 @@
 <script setup lang="ts">
 import { useAxios } from '@/client/axios'
-import { ref, type Ref, useTemplateRef, onMounted, watch } from 'vue'
+import { ref, type Ref, watch } from 'vue'
+import router from '@/router'
 import Paginator from '@/components/Paginator.vue'
+
+const LAST_QUEUE_VIEW_RECORDS_PER_PAGE = "LastQueueViewRecordsPerPage"
+
+const props = defineProps({
+  offset: {
+    type: String,
+    default: '0',
+  },
+})
 
 const emit = defineEmits<{
   toastEvent: [message: string]
@@ -10,21 +20,53 @@ const emit = defineEmits<{
 const builds = ref([])
 
 const totalRecords: Ref<number> = ref(0)
-const page: Ref<number> = ref(1)
-const recordsPerPage: Ref<number> = ref(5)
+const recordsPerPage: Ref<number> = ref(getRecordsPerPage(5))
 const loading: Ref<boolean> = ref(false)
 const syncError: Ref<boolean> = ref(false)
+const page: Ref<number> = ref(getPageForOffset())
 
-watch([page, recordsPerPage], async () => {
-  await updateBuilds()
-})
+watch(page,
+  () => {
+    router.replace({ query: { offset: getOffsetForPage().toString() } })
+  }
+)
+
+watch(() => props.offset,
+  async () => {
+    page.value = getPageForOffset()
+    await updateBuilds()
+  },
+  { immediate: true }
+)
+
+watch(recordsPerPage,
+  async (newValue) => {
+    localStorage.setItem(LAST_QUEUE_VIEW_RECORDS_PER_PAGE, newValue.toString())
+    await updateBuilds()
+  }
+)
+
+function getOffsetForPage(): number {
+  return (page.value - 1) * recordsPerPage.value
+}
+
+function getPageForOffset(): number {
+  return Math.floor(Number(props.offset) / recordsPerPage.value) + 1
+}
+
+function getRecordsPerPage(defaultValue: number): number {
+  try {
+    const cachedValue = localStorage.getItem(LAST_QUEUE_VIEW_RECORDS_PER_PAGE)
+    return cachedValue ? Number(cachedValue) : defaultValue
+  } catch { return defaultValue }
+}
 
 async function updateBuilds() {
   loading.value = true
   syncError.value = false
   try {
     const response = await useAxios().get('/api/v1/builds', {
-      offset: (page.value - 1) * recordsPerPage.value,
+      offset: Number(props.offset),
       limit: recordsPerPage.value,
     })
     totalRecords.value = response.data.count
@@ -45,10 +87,6 @@ async function abort(build_id: number) {
     emit('toastEvent', error)
   }
 }
-
-onMounted(async () => {
-  await updateBuilds()
-})
 </script>
 
 <template>

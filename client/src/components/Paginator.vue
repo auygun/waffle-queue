@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, type ComputedRef, type ModelRef, watch, onMounted } from 'vue'
+import { computed, type ComputedRef, type ModelRef, watch } from 'vue'
 import ReloadButton from '@/components/ReloadButton.vue'
 
 const props = defineProps({
@@ -40,22 +40,12 @@ const emit = defineEmits<{
   reload: []
 }>()
 
-const LAST_CURRENT_PAGE = `${props.storagePrefix}CurrentPage`
-const LAST_ROWS_PER_PAGE = `${props.storagePrefix}RowsPerPage`
-
-watch(
-  () => props.totalRows,
-  (newValue) => {
-    const numPages: number = Math.ceil(newValue / rowsPerPageModel.value)
-    if (currentPageModel.value >= numPages)
-      currentPageModel.value = numPages === 0 ? 1 : numPages
+watch(() => props.totalRows,
+  () => {
+    if (currentPageModel.value > totalPages.value)
+      currentPageModel.value = totalPages.value === 0 ? 1 : totalPages.value
   }
 )
-
-watch([currentPageModel, rowsPerPageModel], ([newCurrentPage, newRowsPerPageModel]) => {
-  localStorage.setItem(LAST_CURRENT_PAGE, newCurrentPage.toString())
-  localStorage.setItem(LAST_ROWS_PER_PAGE, newRowsPerPageModel.toString())
-})
 
 const totalPages: ComputedRef<number> = computed(() => {
   return Math.ceil(props.totalRows / rowsPerPageModel.value)
@@ -123,20 +113,6 @@ function onClickRowsPerPage(delta: number) {
     currentPageModel.value = numPages
   }
 }
-
-function loadFromLocalStorage(key: string, obj: ModelRef<number>, lower: number, upper: number) {
-  try {
-    const cached: string | null = localStorage.getItem(key)
-    const value: number | null = cached ? parseInt(cached) : null
-    if (value && value >= lower && value <= upper)
-      obj.value = value
-  } finally { }
-}
-
-onMounted(() => {
-  loadFromLocalStorage(LAST_CURRENT_PAGE, currentPageModel, 0, Number.MAX_VALUE)
-  loadFromLocalStorage(LAST_ROWS_PER_PAGE, rowsPerPageModel, 5, 30)
-})
 
 </script>
 

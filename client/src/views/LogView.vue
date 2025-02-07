@@ -3,6 +3,10 @@ import { useAxios } from '@/client/axios'
 import { ref, type Ref, useTemplateRef, onMounted } from 'vue'
 import ReloadButton from '@/components/ReloadButton.vue'
 
+const emit = defineEmits<{
+  toastEvent: [message: string]
+}>()
+
 const log = ref([])
 const loading: Ref<boolean> = ref(false)
 const syncError: Ref<boolean> = ref(false)
