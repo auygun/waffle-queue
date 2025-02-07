@@ -13,14 +13,12 @@ bp = Blueprint("rest", __name__, url_prefix="/api/v1")
 @bp.errorhandler(db.CreateConnectionError)
 def db_create_connection_error(exc):
     print(exc)
-    logger.warn(str(exc), commit=False)
     return 'Systems is too busy', 500
 
 
 @bp.errorhandler(OperationalError)
 def sql_operational_error(exc):
     print(exc)
-    logger.warn(str(exc), commit=False)
     return str(exc.args), 500
 
 
