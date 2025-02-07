@@ -16,10 +16,10 @@ const loading: Ref<boolean> = ref(false)
 const syncError: Ref<boolean> = ref(false)
 
 watch([page, recordsPerPage], async () => {
-  await getBuilds()
+  await updateBuilds()
 })
 
-async function getBuilds() {
+async function updateBuilds() {
   loading.value = true
   syncError.value = false
   try {
@@ -40,19 +40,20 @@ async function abort(build_id: number) {
   try {
     const formData = new FormData()
     await useAxios().postFormData(`/api/v1/abort/${build_id}`, formData)
+    await updateBuilds()
   } catch (error) {
     emit('toastEvent', error)
   }
 }
 
 onMounted(async () => {
-  await getBuilds()
+  await updateBuilds()
 })
 </script>
 
 <template>
   <Paginator :loading="loading" :sync-error="syncError" :total-rows="totalRecords" v-model:page="page"
-    v-model:rows-per-page="recordsPerPage" @reload="async () => { await getBuilds() }"
+    v-model:rows-per-page="recordsPerPage" @reload="async () => { await updateBuilds() }"
     :storage-prefix="String('queueView')" />
 
   <div style="margin-top: 1rem;"></div>
