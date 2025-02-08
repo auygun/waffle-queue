@@ -43,9 +43,10 @@ class Logger:
         except InterfaceError:
             # Can happen when task gets canceled due to disconnection
             return
+        # pylint:disable = bare-except
         try:
             db.commit()
-        finally:
+        except:
             pass
 
     def is_log_on(self, severity):

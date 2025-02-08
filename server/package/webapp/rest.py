@@ -30,9 +30,10 @@ def add_cache_controls(response):
 
 @bp.teardown_request
 def db_commit(_exc):
+    # pylint:disable = bare-except
     try:
         db.commit()
-    finally:
+    except:
         pass
 
 
