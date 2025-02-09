@@ -8,6 +8,11 @@ const props = defineProps({
     type: String,
     required: false,
     default: "",
+  },
+  disabled: {
+    type: Boolean,
+    required: false,
+    default: false,
   }
 })
 
@@ -22,7 +27,7 @@ const textModel = defineModel('text', {
     <div>
       <span class="material-icons">{{ props.icon }}</span>
     </div>
-    <input v-model.trim="textModel" :placeholder="props.placeholder" type="text" />
+    <input v-model.trim="textModel" :disabled="props.disabled" :placeholder="props.placeholder" type="text" />
   </div>
 </template>
 

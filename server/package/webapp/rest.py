@@ -49,12 +49,21 @@ def get_builds():
     }
 
 
-@bp.route("/integrate", methods=["POST"])
+@bp.route("/request", methods=["POST"])
 def integrate():
-    branch = request.form.get("branch", "")
-    if branch == "":
+    request_type = request.form.get("request-type", "", type=str)
+    remote_url = request.form.get("remote-url", "", type=str)
+    source_branch = request.form.get("source-branch", "", type=str)
+    target_branch = request.form.get("target-branch", "", type=str)
+    build_script = request.form.get("build-script", "", type=str)
+    if any(i == "" for i in [remote_url, source_branch, build_script]):
         return abort(400)
-    Build.new(branch)
+    if request_type != "Integration" and request_type != "Build":
+        return abort(400)
+    if request_type == "Integration" and target_branch == "":
+        return abort(400)
+    Build.new(request_type == "Integration", remote_url, source_branch,
+              target_branch, build_script)
     return {}
 
 

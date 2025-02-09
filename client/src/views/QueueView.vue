@@ -109,7 +109,7 @@ async function abort(build_id: number) {
       <tbody>
         <tr v-for="(build, index) in builds" :key="index">
           <td>{{ build.id }}</td>
-          <td>{{ build.branch }}</td>
+          <td>{{ build.source_branch }}</td>
           <td>{{ build.state }}</td>
           <td>
             <div>

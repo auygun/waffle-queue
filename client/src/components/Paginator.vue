@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, type ComputedRef, type ModelRef, watch } from 'vue'
+import { computed, type ComputedRef, watch } from 'vue'
 import ReloadButton from '@/components/ReloadButton.vue'
 
 const props = defineProps({
@@ -165,7 +165,7 @@ button.paginator-button {
   text-align: center;
   min-width: 2.6rem;
   height: 2.6rem;
-  background-color: transparent;
+  background-color: var(--bg);
   border: 1px solid;
   border-color: transparent;
   color: var(--text);

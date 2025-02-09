@@ -3,8 +3,20 @@ from .entity import Entity
 
 
 class Build(Entity):
-    def branch(self):
-        return self._fetch('branch')
+    def integration(self):
+        return self._fetch('integration') == 1
+
+    def remote_url(self):
+        return self._fetch('remote_url')
+
+    def source_branch(self):
+        return self._fetch('source_branch')
+
+    def target_branch(self):
+        return self._fetch('target_branch')
+
+    def build_script(self):
+        return self._fetch('build_script')
 
     def state(self):
         return self._fetch('state')
@@ -22,15 +34,24 @@ class Build(Entity):
     def jsonify(self):
         return {
             "id": self.id(),
-            "branch": self.branch(),
+            "integration": self.integration(),
+            "remote_url": self.remote_url(),
+            "source_branch": self.source_branch(),
+            "target_branch": self.target_branch(),
+            "build_script": self.build_script(),
             "state": self.state()
         }
 
     @staticmethod
-    def new(branch, state='REQUESTED'):
+    def new(integration, remote_url, source_branch, target_branch, build_script,
+            state='REQUESTED'):
         with db.cursor() as cursor:
-            cursor.execute("INSERT INTO builds (branch, state) "
-                           "VALUES (%s, %s) RETURNING id", (branch, state))
+            cursor.execute("INSERT INTO builds"
+                           " (integration, remote_url, source_branch,"
+                           "  target_branch, build_script, state)"
+                           " VALUES (%s, %s, %s, %s, %s, %s) RETURNING id",
+                           (integration, remote_url, source_branch,
+                            target_branch, build_script, state))
         return Build(*cursor.fetchone())
 
     @staticmethod
