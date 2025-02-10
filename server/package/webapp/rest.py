@@ -56,6 +56,7 @@ def integrate():
     source_branch = request.form.get("source-branch", "", type=str)
     target_branch = request.form.get("target-branch", "", type=str)
     build_script = request.form.get("build-script", "", type=str)
+    work_dir = request.form.get("work-dir", "", type=str)
     if any(i == "" for i in [remote_url, source_branch, build_script]):
         return abort(400)
     if request_type != "Integration" and request_type != "Build":
@@ -63,7 +64,7 @@ def integrate():
     if request_type == "Integration" and target_branch == "":
         return abort(400)
     Build.new(request_type == "Integration", remote_url, source_branch,
-              target_branch, build_script)
+              target_branch, build_script, work_dir)
     return {}
 
 

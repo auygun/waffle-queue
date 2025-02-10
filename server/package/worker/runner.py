@@ -41,11 +41,8 @@ async def run(cmd, logger, cwd=None, env=None, output=None, encoding="utf-8"):
             with logger.bulk_logger('TRACE') as log:
                 for line in stdout.splitlines():
                     log(line)
-            if output is None:
-                stdout = None
         else:
             await proc.wait()
-            stdout = None
 
         logger.info(f"Exit code: {proc.returncode}")
         if proc.returncode:

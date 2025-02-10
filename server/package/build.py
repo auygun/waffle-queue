@@ -18,6 +18,9 @@ class Build(Entity):
     def build_script(self):
         return self._fetch('build_script')
 
+    def work_dir(self):
+        return self._fetch('work_dir')
+
     def state(self):
         return self._fetch('state')
 
@@ -44,14 +47,14 @@ class Build(Entity):
 
     @staticmethod
     def new(integration, remote_url, source_branch, target_branch, build_script,
-            state='REQUESTED'):
+            work_dir, state='REQUESTED'):
         with db.cursor() as cursor:
             cursor.execute("INSERT INTO builds"
                            " (integration, remote_url, source_branch,"
-                           "  target_branch, build_script, state)"
-                           " VALUES (%s, %s, %s, %s, %s, %s) RETURNING id",
+                           "  target_branch, build_script, work_dir, state)"
+                           " VALUES (%s, %s, %s, %s, %s, %s, %s) RETURNING id",
                            (integration, remote_url, source_branch,
-                            target_branch, build_script, state))
+                            target_branch, build_script, work_dir, state))
         return Build(*cursor.fetchone())
 
     @staticmethod

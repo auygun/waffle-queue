@@ -13,6 +13,11 @@ const props = defineProps({
     type: Boolean,
     required: false,
     default: false,
+  },
+  mirrorIcon: {
+    type: Boolean,
+    required: false,
+    default: false,
   }
 })
 
@@ -25,7 +30,7 @@ const textModel = defineModel('text', {
 <template>
   <div class="wrapper">
     <div>
-      <span class="material-icons">{{ props.icon }}</span>
+      <span class="material-icons" :class="{ mirror: props.mirrorIcon }">{{ props.icon }}</span>
     </div>
     <input v-model.trim="textModel" :disabled="props.disabled" :placeholder="props.placeholder" type="text" />
   </div>
@@ -56,5 +61,9 @@ const textModel = defineModel('text', {
   border-radius: var(--standard-border-radius);
   border-top-right-radius: 0;
   border-bottom-right-radius: 0;
+}
+
+.mirror {
+  transform: scale(-1, -1);
 }
 </style>

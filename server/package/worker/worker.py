@@ -56,16 +56,16 @@ class Worker:
         self._current_build = build_request
         print("Starting build: "
               f"{self._current_build.id()}, "
-              f"{self._current_build.branch()}")
+              f"{self._current_build.source_branch()}")
         self._logger.info("Starting build! id: "
                           f"{self._current_build.id()}, "
-                          f"branch: {self._current_build.branch()}")
+                          f"branch: {self._current_build.source_branch()}")
 
         modules = deque([[
-            Path("."),                           # git_dir
-            Path("."),                           # work_tree
-            "/home/auygun/code/proj2/proj.git",  # remote url
-            "origin/" + "master"                 # branch
+            Path("."),  # git_dir
+            Path("."),  # work_tree
+            self._current_build.remote_url(),  # remote url
+            "origin/" + self._current_build.source_branch()  # branch
         ]])
 
         try:
@@ -79,11 +79,13 @@ class Worker:
                 for sm in submodules:
                     modules.append(sm)
 
-            build_script = Path("build/build.py")
-            await runner.run(["python3", str(build_script)],
-                             cwd=self.work_tree_root(), logger=self._logger)
+            build_script = Path(self._current_build.build_script())
+            cwd = Path(self._current_build.work_dir())
+            await runner.run(["python3",
+                              str(self.work_tree_root() / build_script)],
+                             cwd=self.work_tree_root() / cwd,
+                             logger=self._logger)
         except runner.RunProcessError as e:
-            print(e.output.splitlines()[-1])
             return e.returncode
 
         return 0

@@ -26,10 +26,11 @@ VALUE
 CREATE TABLE IF NOT EXISTS builds (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     integration BOOL NOT NULL,
-    remote_url TINYTEXT NOT NULL,
-    source_branch TINYTEXT NOT NULL,
-    target_branch TINYTEXT NOT NULL,
-    build_script TINYTEXT NOT NULL,
+    remote_url TEXT NOT NULL,
+    source_branch TEXT NOT NULL,
+    target_branch TEXT NOT NULL,
+    build_script TEXT NOT NULL,
+    work_dir TEXT NOT NULL,
     state ENUM ('REQUESTED', 'BUILDING', 'SUCCEEDED', 'FAILED', 'ABORTED') NOT NULL,
     INDEX (state)
 );
