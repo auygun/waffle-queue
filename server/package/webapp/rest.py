@@ -1,4 +1,5 @@
 from flask import Blueprint, request, abort
+import werkzeug.exceptions as ex
 from pymysql.err import OperationalError
 
 import lazy_object_proxy
@@ -13,13 +14,18 @@ bp = Blueprint("rest", __name__, url_prefix="/api/v1")
 @bp.errorhandler(db.CreateConnectionError)
 def db_create_connection_error(exc):
     print(exc)
-    return 'Systems is too busy', 500
+    return 'The server is overloaded', 500
 
 
 @bp.errorhandler(OperationalError)
 def sql_operational_error(exc):
     print(exc)
     return str(exc.args), 500
+
+
+@bp.errorhandler(ex.HTTPException)
+def http_exception(exc):
+    return str(exc.description), exc.code
 
 
 @bp.after_request
@@ -62,7 +68,7 @@ def integrate():
     if request_type != "Integration" and request_type != "Build":
         return abort(400)
     if request_type == "Integration" and target_branch == "":
-        return abort(400)
+        return abort(400, "Missing target branch name")
     Build.new(request_type == "Integration", remote_url, source_branch,
               target_branch, build_script, work_dir)
     return {}

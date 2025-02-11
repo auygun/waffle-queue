@@ -4,9 +4,9 @@ import { useTemplateRef } from 'vue'
 import Toast from '@/components/Toast.vue'
 
 const toast = useTemplateRef('toast')
-const showToast = (msg: string) => toast.value?.showToast(msg)
+const showToast = (msg: [string, string]) => toast.value?.showToast(msg)
 
-function onToastEvent(message: string) {
+function onToastEvent(message: [string, string]) {
   showToast(message)
 }
 </script>

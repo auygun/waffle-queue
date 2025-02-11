@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { useAxios } from '@/client/axios'
-import { ref, type Ref, useTemplateRef, onMounted } from 'vue'
+import { AxiosErrorToString, useAxios } from '@/client/axios'
+import { ref, type Ref, onMounted } from 'vue'
 import ReloadButton from '@/components/ReloadButton.vue'
+import type { AxiosError } from 'axios';
 
 const emit = defineEmits<{
-  toastEvent: [message: string]
+  toastEvent: [message: [string, string]]
 }>()
 
 const log = ref([])
@@ -19,6 +20,7 @@ async function getLog() {
     log.value = response.data.content
   } catch (error) {
     syncError.value = true
+    emit('toastEvent', AxiosErrorToString(error as AxiosError<string>))
   } finally {
     loading.value = false
   }

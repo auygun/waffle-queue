@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { useAxios } from '@/client/axios'
+import { AxiosErrorToString, useAxios } from '@/client/axios'
 import { ref, type Ref, watch } from 'vue'
 import router from '@/router'
 import Paginator from '@/components/Paginator.vue'
+import type { AxiosError } from 'axios'
 
 const LAST_QUEUE_VIEW_RECORDS_PER_PAGE = "LastQueueViewRecordsPerPage"
 
@@ -14,7 +15,7 @@ const props = defineProps({
 })
 
 const emit = defineEmits<{
-  toastEvent: [message: string]
+  toastEvent: [message: [string, string]]
 }>()
 
 const builds = ref([])
@@ -73,6 +74,7 @@ async function updateBuilds() {
     builds.value = response.data.content
   } catch (error) {
     syncError.value = true
+    emit('toastEvent', AxiosErrorToString(error as AxiosError<string>))
   } finally {
     loading.value = false
   }
@@ -84,7 +86,7 @@ async function abort(build_id: number) {
     await useAxios().postFormData(`/api/v1/abort/${build_id}`, formData)
     await updateBuilds()
   } catch (error) {
-    emit('toastEvent', error)
+    emit('toastEvent', AxiosErrorToString(error as AxiosError<string>))
   }
 }
 </script>

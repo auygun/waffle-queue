@@ -2,12 +2,13 @@
 import { ref, type Ref, useTemplateRef } from 'vue';
 
 const toast = useTemplateRef<HTMLDivElement>('toast');
-const message: Ref<string> = ref("")
+const message: Ref<[string, string]> = ref(["", ""])
 
 let toastTimeout: number | null = null
 
-const showToast = (msg: string) => {
-  message.value = msg;
+const showToast = (msg: [string, string]) => {
+  message.value[0] = msg[0];
+  message.value[1] = msg[1];
   toast.value.className = "notice show";
   maybeClearUpdateTimeout()
   toastTimeout = setTimeout(hideToast, 3000);
@@ -35,7 +36,7 @@ defineExpose({
 </script>
 
 <template>
-  <div class="notice" id="toast" ref="toast">{{ message }}</div>
+  <div class="notice" id="toast" ref="toast">{{ message[0] }}<br>{{ message[1] }}</div>
 </template>
 
 <style scoped>

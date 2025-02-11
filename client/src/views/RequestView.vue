@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { useAxios } from '@/client/axios'
+import { AxiosErrorToString, useAxios } from '@/client/axios'
 import { ref, type Ref, watch } from 'vue'
 import TextInput from '@/components/TextInput.vue'
+import type { AxiosError } from 'axios'
 
 const LAST_REQUEST_VIEW_REQUEST_TYPE = "LastRequestViewRequestType"
 const LAST_REQUEST_VIEW_REMOTE_URL = "LastRequestViewRemoteUrl"
@@ -11,7 +12,7 @@ const LAST_REQUEST_VIEW_BUILD_SCRIPT = "LastRequestViewBuildScript"
 const LAST_REQUEST_VIEW_WORK_DIR = "LastRequestViewWorkDir"
 
 const emit = defineEmits<{
-  toastEvent: [message: string]
+  toastEvent: [message: [string, string]]
 }>()
 
 const requestType: Ref<string> = ref(getRequestType())
@@ -99,7 +100,7 @@ async function request() {
     formData.append('work-dir', workDir.value)
     await useAxios().postFormData('/api/v1/request', formData)
   } catch (error) {
-    emit('toastEvent', error)
+    emit('toastEvent', AxiosErrorToString(error as AxiosError<string>))
   }
 }
 </script>

@@ -1,4 +1,4 @@
-import Axios, { type AxiosRequestConfig } from 'axios'
+import Axios, { AxiosError, type AxiosRequestConfig } from 'axios'
 
 const axiosInstance = Axios.create()
 
@@ -10,24 +10,24 @@ export const useAxios = () => {
   async function get(url: string, params = {}) {
     const config: AxiosRequestConfig = {
       params: params,
-      headers: { 'Content-Type': 'application/json' }
-    };
+      headers: { 'Content-Type': 'application/json' },
+    }
     return await axiosInstance.get(url, config)
   }
 
   async function postFormData(url: string, formData: FormData, params = {}) {
     const config: AxiosRequestConfig = {
       params: params,
-      headers: { 'Content-Type': 'multipart/form-data' }
-    };
+      headers: { 'Content-Type': 'multipart/form-data' },
+    }
     return await axiosInstance.post(url, formData, config)
   }
 
   async function postText(url: string, data: string, params = {}) {
     const config: AxiosRequestConfig = {
       params: params,
-      headers: { 'Content-Type': 'text/plain' }
-    };
+      headers: { 'Content-Type': 'text/plain' },
+    }
     return await axiosInstance.post(url, data, config)
   }
 
@@ -35,6 +35,10 @@ export const useAxios = () => {
     getBaseUrl,
     get,
     postFormData,
-    postText
+    postText,
   }
+}
+
+export function AxiosErrorToString(error: AxiosError<string>): [string, string] {
+  return [error.response?.status + ' (' + error.response?.statusText + ')', error.response.data]
 }
