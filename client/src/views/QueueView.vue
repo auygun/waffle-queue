@@ -89,6 +89,38 @@ async function abort(build_id: number) {
     emit('toastEvent', AxiosErrorToString(error as AxiosError<string>))
   }
 }
+
+function isRequested(build): boolean {
+  return build.state === "REQUESTED"
+}
+
+function isBuilding(build): boolean {
+  return build.state === "BUILDING"
+}
+
+function isSucceeded(build): boolean {
+  return build.state === "SUCCEEDED"
+}
+
+function isAborted(build): boolean {
+  return build.state === "ABORTED"
+}
+
+function isAbortable(build): boolean {
+  return isRequested(build) || isBuilding(build)
+}
+
+function stateColor(build): string {
+  if (isRequested(build))
+    return "Bisque"
+  else if (isBuilding(build))
+    return "Aquamarine"
+  else if (isSucceeded(build))
+    return "SpringGreen"
+  else if (isAborted(build))
+    return "Orange"
+  return "OrangeRed"
+}
 </script>
 
 <template>
@@ -102,20 +134,22 @@ async function abort(build_id: number) {
     <table class="fixed_thead">
       <thead>
         <tr>
-          <th>ID</th>
+          <th style="width: 10%; min-width:8rem;">ID</th>
+          <th style="width: 10%; min-width:8rem;">State</th>
           <th>Branch</th>
-          <th>State</th>
-          <th></th>
+          <th style="width:0rem;"></th>
         </tr>
       </thead>
       <tbody>
         <tr v-for="(build, index) in builds" :key="index">
           <td>{{ build.id }}</td>
+          <td><mark :style="{ 'background-color': stateColor(build) }">{{ build.state }}</mark></td>
           <td>{{ build.source_branch }}</td>
-          <td>{{ build.state }}</td>
           <td>
-            <div>
-              <button @click="abort(build.id)">Abort</button>
+            <div class="center">
+              <button @click="abort(build.id)" title="Abort" :disabled="!isAbortable(build)">
+                <span class="material-icons">cancel</span>
+              </button>
             </div>
           </td>
         </tr>
@@ -127,13 +161,25 @@ async function abort(build_id: number) {
 </template>
 
 <style scoped>
-td:last-child {
-  width: 1%;
+td:last-child,
+td:nth-child(2) {
   font-size: 0.9rem;
   white-space: nowrap;
 }
 
 td>div>button {
-  padding: 0;
+  margin: 0.2rem;
+  padding: 0 0.04rem;
+  font-size: 0;
+}
+
+td>div>button>span {
+  font-size: 1.0rem;
+}
+
+.center {
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 </style>
