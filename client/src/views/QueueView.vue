@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { AxiosErrorToString, useAxios } from '@/client/axios'
-import { ref, type Ref, watch } from 'vue'
+import { computed, type ComputedRef, ref, type Ref, watch } from 'vue'
 import router from '@/router'
 import Paginator from '@/components/Paginator.vue'
 import type { AxiosError } from 'axios'
@@ -17,6 +17,13 @@ type Build = {
   state: string
 }
 
+type Row = {
+  build: Build
+  isDetail: boolean
+  expanded: boolean
+  bgColor: string
+}
+
 const props = defineProps({
   offset: {
     type: String,
@@ -27,6 +34,8 @@ const props = defineProps({
 const emit = defineEmits<{
   toastEvent: [message: [string, string]]
 }>()
+
+const rows: Ref<Row[]> = ref([])
 
 const builds: Ref<Build[]> = ref([])
 
@@ -82,6 +91,12 @@ async function updateBuilds() {
     })
     totalRecords.value = response.data.count
     builds.value = response.data.content
+    rows.value = []
+    for (let i = 0; i < builds.value.length; ++i) {
+      const color = i % 2 !== 0 ? "var(--accent-bg)" : "var(--bg)"
+      rows.value.push({ build: builds.value[i], isDetail: false, expanded: false, bgColor: color })
+      rows.value.push({ build: builds.value[i], isDetail: true, expanded: false, bgColor: color })
+    }
   } catch (error) {
     syncError.value = true
     emit('toastEvent', AxiosErrorToString(error as AxiosError<string>))
@@ -131,6 +146,18 @@ function stateColor(build: Build): string {
     return "Orange"
   return "OrangeRed"
 }
+
+function onToggleExpand(i: number) {
+  rows.value[i + 1].expanded = rows.value[i].expanded = !rows.value[i].expanded
+}
+
+function expandAll(expand: boolean) {
+  rows.value.forEach((r) => { r.expanded = expand })
+}
+
+const allExpanded: ComputedRef<boolean> = computed(() => {
+  return rows.value.every((r) => { return r.expanded })
+})
 </script>
 
 <template>
@@ -144,6 +171,12 @@ function stateColor(build: Build): string {
     <table class="fixed_thead">
       <thead>
         <tr>
+          <th style="width: 0rem;">
+            <div class="center">
+              <span v-if="!allExpanded" @click="expandAll(true)" class="material-icons no-select">unfold_more</span>
+              <span v-if="allExpanded" @click="expandAll(false)" class="material-icons no-select">unfold_less</span>
+            </div>
+          </th>
           <th style="width: 10%; min-width:8rem;">ID</th>
           <th style="width: 10%; min-width:8rem;">State</th>
           <th>Branch</th>
@@ -151,15 +184,29 @@ function stateColor(build: Build): string {
         </tr>
       </thead>
       <tbody>
-        <tr v-for="(build, index) in builds" :key="index">
-          <td>{{ build.id }}</td>
-          <td><mark :style="{ 'background-color': stateColor(build) }">{{ build.state }}</mark></td>
-          <td>{{ build.source_branch }}</td>
-          <td>
+        <tr v-for="(r, index) in rows" :key="index" :style="{ 'background-color': r.bgColor }">
+          <td v-if="!r.isDetail">
             <div class="center">
-              <button @click="abort(build.id)" title="Abort" :disabled="!isAbortable(build)">
+              <span v-if="!r.expanded" @click="onToggleExpand(index)"
+                class="material-icons no-select">expand_more</span>
+              <span v-if="r.expanded" @click="onToggleExpand(index)" class="material-icons no-select">expand_less</span>
+            </div>
+          </td>
+          <td v-if="!r.isDetail">{{ r.build.id }}</td>
+          <td v-if="!r.isDetail">
+            <mark :style="{ 'background-color': stateColor(r.build) }">{{ r.build.state }}</mark>
+          </td>
+          <td v-if="!r.isDetail">{{ r.build.source_branch }}</td>
+          <td v-if="!r.isDetail">
+            <div class="center">
+              <button @click="abort(r.build.id)" title="Abort" :disabled="!isAbortable(r.build)">
                 <span class="material-icons">cancel</span>
               </button>
+            </div>
+          </td>
+          <td v-if="r.isDetail && r.expanded" colspan="5">
+            <div style="white-space: wrap;">
+              {{ r.build }}
             </div>
           </td>
         </tr>
@@ -172,7 +219,7 @@ function stateColor(build: Build): string {
 
 <style scoped>
 td:last-child,
-td:nth-child(2) {
+td:nth-child(3) {
   font-size: 0.9rem;
   white-space: nowrap;
 }
@@ -191,5 +238,10 @@ td>div>button>span {
   display: flex;
   justify-content: center;
   align-items: center;
+}
+
+.no-select {
+  cursor: default;
+  user-select: none;
 }
 </style>
