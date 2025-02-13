@@ -65,7 +65,6 @@ class Build(Entity):
 
     @staticmethod
     def list(offset, limit, jsonify=False):
-        print(offset, limit)
         with db.cursor() as cursor:
             cursor.execute("SELECT id FROM builds ORDER BY id DESC"
                            " LIMIT %s OFFSET %s", (limit, offset))

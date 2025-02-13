@@ -32,7 +32,7 @@ const textModel = defineModel('text', {
     <div>
       <span class="material-icons" :class="{ mirror: props.mirrorIcon }">{{ props.icon }}</span>
     </div>
-    <input v-model.trim="textModel" :disabled="props.disabled" :placeholder="props.placeholder" type="text" />
+    <input v-model.lazy.trim="textModel" :disabled="props.disabled" :placeholder="props.placeholder" type="text" />
   </div>
 </template>
 

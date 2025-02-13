@@ -8,7 +8,7 @@ class Logger:
     def __init__(self, build_id_cb):
         self._build_id_cb = build_id_cb
 
-    def list(self, max_severity=None, jsonify=False):
+    def list(self, build_id, max_severity=None, jsonify=False):
         if max_severity is None:
             with db.cursor() as cursor:
                 cursor.execute("SELECT value FROM settings"
@@ -17,9 +17,10 @@ class Logger:
         with db.cursor() as cursor:
             cursor.execute("SELECT build_id, timestamp, severity, message"
                            " FROM logs WHERE severity<="
-                           " (SELECT rank FROM log_level WHERE severity=%s)"
+                           " (SELECT rank FROM log_level"
+                           "  WHERE severity=%s and build_id=%s)"
                            " ORDER BY id",
-                           (max_severity))
+                           (max_severity, build_id))
             if jsonify:
                 keys = ["build_id", "timestamp", "severity", "message"]
                 return [dict(zip(keys, row)) for row in cursor]

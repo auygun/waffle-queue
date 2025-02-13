@@ -202,6 +202,10 @@ const allExpanded: ComputedRef<boolean> = computed(() => {
               <button @click="abort(r.build.id)" title="Abort" :disabled="!isAbortable(r.build)">
                 <span class="material-icons">cancel</span>
               </button>
+              <button @click="router.push({ path: '/log', query: { buildId: r.build.id } })" title="Log"
+                :disabled="isRequested(r.build)">
+                <span class="material-icons">feed</span>
+              </button>
             </div>
           </td>
           <td v-if="r.isDetail && r.expanded" colspan="5">
