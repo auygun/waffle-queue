@@ -7,6 +7,16 @@ import type { AxiosError } from 'axios'
 
 const LAST_QUEUE_VIEW_RECORDS_PER_PAGE = "LastQueueViewRecordsPerPage"
 
+type Build = {
+  id: number
+  integration: boolean
+  remote_url: string
+  source_branch: string
+  target_branch: string
+  build_script: string
+  state: string
+}
+
 const props = defineProps({
   offset: {
     type: String,
@@ -18,7 +28,7 @@ const emit = defineEmits<{
   toastEvent: [message: [string, string]]
 }>()
 
-const builds = ref([])
+const builds: Ref<Build[]> = ref([])
 
 const totalRecords: Ref<number> = ref(0)
 const recordsPerPage: Ref<number> = ref(getRecordsPerPage(5))
@@ -90,27 +100,27 @@ async function abort(build_id: number) {
   }
 }
 
-function isRequested(build): boolean {
+function isRequested(build: Build): boolean {
   return build.state === "REQUESTED"
 }
 
-function isBuilding(build): boolean {
+function isBuilding(build: Build): boolean {
   return build.state === "BUILDING"
 }
 
-function isSucceeded(build): boolean {
+function isSucceeded(build: Build): boolean {
   return build.state === "SUCCEEDED"
 }
 
-function isAborted(build): boolean {
+function isAborted(build: Build): boolean {
   return build.state === "ABORTED"
 }
 
-function isAbortable(build): boolean {
+function isAbortable(build: Build): boolean {
   return isRequested(build) || isBuilding(build)
 }
 
-function stateColor(build): string {
+function stateColor(build: Build): string {
   if (isRequested(build))
     return "Bisque"
   else if (isBuilding(build))
