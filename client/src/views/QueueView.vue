@@ -115,6 +115,11 @@ async function abort(build_id: number) {
   }
 }
 
+async function showBuildLog(build_id: number) {
+  const url = `${useAxios().getBaseUrl()}/api/v1/result/${build_id}/build.log`
+  window.open(url, '_blank')?.focus()
+}
+
 function isRequested(build: Build): boolean {
   return build.state === "REQUESTED"
 }
@@ -203,6 +208,10 @@ const allExpanded: ComputedRef<boolean> = computed(() => {
                 <span class="material-icons">cancel</span>
               </button>
               <button @click="router.push({ path: '/log', query: { buildId: r.build.id } })" title="Log"
+                :disabled="isRequested(r.build)">
+                <span class="material-icons">article</span>
+              </button>
+              <button @click="showBuildLog(r.build.id)" title="Build log"
                 :disabled="isRequested(r.build)">
                 <span class="material-icons">feed</span>
               </button>

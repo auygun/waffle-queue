@@ -24,6 +24,9 @@ class Build(Entity):
     def state(self):
         return self._fetch('state')
 
+    def is_building(self):
+        return self._fetch('state') == 'BUILDING'
+
     def set_state(self, value):
         return self._update('state', value)
 

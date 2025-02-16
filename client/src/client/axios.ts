@@ -4,7 +4,7 @@ const axiosInstance = Axios.create()
 
 export const useAxios = () => {
   function getBaseUrl(): string | undefined {
-    return axiosInstance.defaults.baseURL
+    return 'http://127.0.0.1:5001'
   }
 
   async function get(url: string, params = {}) {

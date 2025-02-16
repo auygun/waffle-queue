@@ -10,3 +10,9 @@ class Entity:
 
     def id(self):
         return self._id
+
+    def is_valid(self):
+        return self._fetch("id") is not None
+
+    def _fetch(self, _field):
+        pass

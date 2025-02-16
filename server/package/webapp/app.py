@@ -26,5 +26,5 @@ def dev_run():
         debug=True,
         use_evalex=False,
         threaded=False,
-        processes=1,
+        processes=2,
     )

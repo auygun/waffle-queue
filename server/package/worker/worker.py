@@ -23,6 +23,9 @@ class Worker:
             return self._current_build.id()
         return None
 
+    def result_dir(self):
+        return Path.home() / "waffle_worker" / "result"
+
     def project_dir(self):
         return Path.home() / "waffle_worker" / "proj"
 
@@ -79,12 +82,17 @@ class Worker:
                 for sm in submodules:
                     modules.append(sm)
 
+            result_dir = self.result_dir() / str(self._current_build.id())
+            result_dir.mkdir(parents=True, exist_ok=True)
+            log_file = result_dir / "build.log"
             build_script = Path(self._current_build.build_script())
             cwd = Path(self._current_build.work_dir())
-            await runner.run(["python3",
-                              str(self.work_tree_root() / build_script)],
-                             cwd=self.work_tree_root() / cwd,
-                             logger=self._logger)
+            with open(log_file, "wt", encoding="utf-8") as log_file_fd:
+                await runner.run(["python3",
+                                  str(self.work_tree_root() / build_script)],
+                                 cwd=self.work_tree_root() / cwd,
+                                 output=log_file_fd,
+                                 logger=self._logger)
         except runner.RunProcessError as e:
             return e.returncode
 

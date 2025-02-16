@@ -1,4 +1,6 @@
-from flask import Blueprint, request, abort
+from pathlib import Path
+import time
+from flask import Blueprint, Response, request, abort, send_file, stream_with_context
 import werkzeug.exceptions as ex
 from pymysql.err import OperationalError
 
@@ -11,6 +13,10 @@ logger = lazy_object_proxy.Proxy(lambda: Logger(0))
 bp = Blueprint("rest", __name__, url_prefix="/api/v1")
 
 
+def result_dir():
+    return Path.home() / "waffle_worker" / "result"
+
+
 @bp.errorhandler(db.CreateConnectionError)
 def db_create_connection_error(exc):
     print(exc)
@@ -20,12 +26,12 @@ def db_create_connection_error(exc):
 @bp.errorhandler(OperationalError)
 def sql_operational_error(exc):
     print(exc)
-    return str(exc.args), 500
+    return exc.args[1], 500
 
 
 @bp.errorhandler(ex.HTTPException)
 def http_exception(exc):
-    return str(exc.description), exc.code
+    return exc.description, exc.code
 
 
 @bp.after_request
@@ -96,3 +102,49 @@ def get_log():
     return {
         'content': logger.list(build_id, max_severity=severity, jsonify=True)
     }
+
+
+@bp.route("/result/<int:build_id>/<path:item>", methods=['GET'])
+def get_result(build_id, item):
+    build = Build(build_id)
+    path = result_dir() / f"{build_id}" / item
+
+    if not path.is_file():
+        return abort(404, "No such file or directory")
+
+    if not build.is_building():
+        return send_file(path, mimetype="text/plain")
+
+    @stream_with_context
+    def stream():
+        try:
+            with open(path, mode="r", encoding="utf-8") as f:
+                # Yield all but the last line in case it is incomplete
+                data = f.read()
+                end = data.rfind("\n")
+                if end > -1:
+                    yield data[:end]
+                    rest = data[end:]
+                else:
+                    rest = data
+
+                timeout = 0
+                while True:
+                    line = f.readline()
+                    if not line:
+                        db.commit()  # Needed for query to be up-to-date
+                        if not build.is_building():
+                            break
+                        time.sleep(1)
+                        timeout += 1
+                        if timeout > 30:
+                            yield "\nTimeout!"
+                            break
+                        continue
+                    timeout = 0
+                    yield rest + line
+                    rest = ""
+        except OSError as e:
+            yield str(e)
+
+    return Response(stream(), mimetype="text/plain")
