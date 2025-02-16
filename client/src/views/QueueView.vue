@@ -120,6 +120,16 @@ async function showBuildLog(build_id: number) {
   window.open(url, '_blank')?.focus()
 }
 
+async function getPublicUrl(build_id: number) {
+  try {
+    const response = await useAxios().get(`/api/v1/public_url/${build_id}/build.log`)
+    navigator.clipboard.writeText(response.data.url)
+    emit('toastEvent', ['Public URL is copied to clipboard', `It's valid  for ${response.data.ttl} seconds`])
+  } catch (error) {
+    emit('toastEvent', AxiosErrorToString(error as AxiosError<string>))
+  }
+}
+
 function isRequested(build: Build): boolean {
   return build.state === "REQUESTED"
 }
@@ -211,9 +221,11 @@ const allExpanded: ComputedRef<boolean> = computed(() => {
                 :disabled="isRequested(r.build)">
                 <span class="material-icons">article</span>
               </button>
-              <button @click="showBuildLog(r.build.id)" title="Build log"
-                :disabled="isRequested(r.build)">
+              <button @click="showBuildLog(r.build.id)" title="Build log" :disabled="isRequested(r.build)">
                 <span class="material-icons">feed</span>
+              </button>
+              <button @click="getPublicUrl(r.build.id)" title="Copy public URL" :disabled="isRequested(r.build)">
+                <span class="material-icons">link</span>
               </button>
             </div>
           </td>

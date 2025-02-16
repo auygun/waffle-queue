@@ -43,7 +43,9 @@ defineExpose({
 #toast {
   visibility: hidden;
   text-align: center;
+  overflow-wrap: break-word;
   min-width: min(100rem, 90vw);
+  max-width: min(100rem, 90vw);
   position: fixed;
   z-index: 1;
   bottom: 70px;

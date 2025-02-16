@@ -1,16 +1,21 @@
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 import time
+
 from flask import Blueprint, Response, request, abort, send_file, stream_with_context
 import werkzeug.exceptions as ex
 from pymysql.err import OperationalError
-
 import lazy_object_proxy
+import jwt
+
 from ..build import Build
 from ..logger import Logger
 from . import db
 
 logger = lazy_object_proxy.Proxy(lambda: Logger(0))
 bp = Blueprint("rest", __name__, url_prefix="/api/v1")
+
+_jwt_secret = "IceCreamFruitWaffle"
 
 
 def result_dir():
@@ -148,3 +153,53 @@ def get_result(build_id, item):
             yield str(e)
 
     return Response(stream(), mimetype="text/plain")
+
+
+@bp.route("/public_url/<int:build_id>/<path:item>", methods=['GET'])
+def get_public_url(build_id, item):
+    build = Build(build_id)
+    path = result_dir() / f"{build_id}" / item
+
+    if build.is_building() or not path.is_file():
+        return abort(404, "No such file or directory")
+
+    ttl = timedelta(minutes=2)
+    claims = {
+        "build_id": build_id,
+        "item": item,
+        "iat": datetime.now(tz=timezone.utc),
+        "exp": datetime.now(tz=timezone.utc) + ttl,
+    }
+    token = jwt.encode(
+        claims,
+        _jwt_secret,
+        algorithm="HS256",
+    )
+    return {
+        "url": f"http://127.0.0.1:5001/api/v1/jwt/{token}",
+        "ttl": int(ttl.total_seconds()),
+    }
+
+
+@bp.route("/jwt/<path:token>", methods=['GET'])
+def public_download(token):
+    try:
+        decoded = jwt.decode(
+            token,
+            _jwt_secret,
+            algorithms=["HS256"],
+            options={"require": ["exp", "iat"]},
+            leeway=2.0,
+        )
+        build = Build(decoded["build_id"])
+        path = result_dir() / str(decoded["build_id"]) / decoded["item"]
+
+        if build.is_building() or not path.is_file():
+            return abort(404, "No such file or directory")
+
+        return send_file(path)
+    except (
+        jwt.exceptions.InvalidTokenError,
+        TypeError,
+    ):
+        return abort(404)

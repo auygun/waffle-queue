@@ -29,6 +29,7 @@ sudo mariadb
 sudo pacman -S python-flask
 sudo pacman -S python-pymysql
 sudo pacman -S python-lazy-object-proxy
+sudo pacman -S python-pyjwt
 
 cd server
 ./sql_runner.py create_or_update_schema.sql
@@ -71,4 +72,5 @@ cd server
 [flask](https://github.com/pallets/flask/),
 [pymysql](https://github.com/PyMySQL/PyMySQL),
 [lazy-object-proxy](https://github.com/ionelmc/python-lazy-object-proxy),
+[pyjwt](https://github.com/jpadilla/pyjwt),
 [mariadb](https://github.com/MariaDB/server)
