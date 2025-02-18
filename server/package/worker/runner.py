@@ -1,62 +1,50 @@
 import asyncio
 
 
-PIPE = asyncio.subprocess.PIPE
-
-
 class RunProcessError(Exception):
     def __init__(self, returncode, output):
         self.returncode = returncode
         self.output = output
 
 
-# pylint:disable = too-many-branches
-# pylint:disable = too-many-arguments
-async def run(cmd, logger, cwd=None, env=None, output=None, encoding="utf-8"):
-    logger.info(f"Run: '{' '.join(cmd)}'")
-
-    if output is None:
-        if logger is None:
-            stdout = asyncio.subprocess.DEVNULL
-            stderr = asyncio.subprocess.DEVNULL
-        else:
-            stdout = asyncio.subprocess.PIPE
-            stderr = asyncio.subprocess.STDOUT
-    else:
-        stdout = output
-        stderr = asyncio.subprocess.STDOUT
+async def run(cmd, output, cwd=None, env=None, encoding="utf-8",
+              return_stdout=False):
+    output.write(f"RUNNER: Run '{' '.join(cmd)}'\n")
+    output.flush()
 
     proc = await asyncio.create_subprocess_exec(
         cmd[0], *cmd[1:],
         cwd=cwd, env=env,
-        stdout=stdout,
-        stderr=stderr,
+        stdout=asyncio.subprocess.PIPE if return_stdout else output,
+        stderr=asyncio.subprocess.STDOUT,
         process_group=0)
 
     try:
-        if stdout == asyncio.subprocess.PIPE:
+        if return_stdout:
             stdout, _ = await proc.communicate()
-            if encoding is not None:
-                stdout = stdout.decode(encoding)
-            with logger.bulk_logger('TRACE') as log:
-                for line in stdout.splitlines():
-                    log(line)
+            stdout = stdout.decode(encoding)
+            output.write(stdout)
+            output.flush()
         else:
             await proc.wait()
+            stdout = None
 
-        logger.info(f"Exit code: {proc.returncode}")
+        output.write(f"RUNNER: Exit code: {proc.returncode}\n")
+        output.flush()
         if proc.returncode:
             raise RunProcessError(proc.returncode, stdout)
         return stdout
     except asyncio.CancelledError:
-        logger.info(f"Terminating {cmd[0]}")
+        output.write(f"RUNNER: Terminating {cmd[0]}\n")
+        output.flush()
         try:
             proc.terminate()
             try:
                 await asyncio.wait_for(proc.wait(), timeout=10)
             except TimeoutError:
                 proc.kill()
-                logger.warn(f"Killed {cmd[0]}")
+                output.write(f"RUNNER: Killed {cmd[0]}\n")
+                output.flush()
         except ProcessLookupError:
             pass
         raise

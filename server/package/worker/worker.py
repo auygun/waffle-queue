@@ -4,7 +4,7 @@ import sys
 from pathlib import Path
 from collections import deque
 
-from pymysql.err import OperationalError
+from pymysql.err import OperationalError, InterfaceError
 from . import db, runner, git
 from .task import Task
 from ..build import Build
@@ -72,71 +72,62 @@ class Worker:
         ]])
 
         try:
-            while True:
-                try:
-                    module = modules.popleft()
-                except IndexError:
-                    break
-                print(module)
-                submodules = await self._prepare_module(*module)
-                for sm in submodules:
-                    modules.append(sm)
-
             result_dir = self.result_dir() / str(self._current_build.id())
             result_dir.mkdir(parents=True, exist_ok=True)
             log_file = result_dir / "build.log"
-            build_script = Path(self._current_build.build_script())
-            cwd = Path(self._current_build.work_dir())
-            with open(log_file, "wt", encoding="utf-8") as log_file_fd:
+            with open(log_file, "wt", encoding="utf-8") as build_log:
+                while True:
+                    try:
+                        module = modules.popleft()
+                    except IndexError:
+                        break
+                    self._logger.trace("Module: " + str(module))
+                    submodules = await self._prepare_module(*module, build_log)
+                    for sm in submodules:
+                        modules.append(sm)
+
+                build_script = Path(self._current_build.build_script())
+                cwd = Path(self._current_build.work_dir())
                 await runner.run(["python3",
                                   str(self.work_tree_root() / build_script)],
-                                 cwd=self.work_tree_root() / cwd,
-                                 output=log_file_fd,
-                                 logger=self._logger)
+                                 build_log, cwd=self.work_tree_root() / cwd)
         except runner.RunProcessError as e:
             return e.returncode
 
         return 0
 
     def _on_build_finished(self, result):
-        if result == 'CANCELED':
-            print("Build canceled!")
-            self._logger.info("Build canceled!")
-        else:
-            db.commit()
+        print("Build finished! result=" + str(result))
+        self._logger.info("Build finished! result=" + str(result))
+        if result != 'CANCELED':
             try:
-                if result == 0:
-                    print("Build Succeeded!")
-                    self._current_build.set_state('SUCCEEDED')
-                    self._logger.info("Build succeeded!")
-                else:
-                    print("Build failed!")
-                    self._current_build.set_state('FAILED')
-                    self._logger.info("Build failed!")
-            except OperationalError as e:
-                print(e)
-            db.commit()
+                state = 'SUCCEEDED' if result == 0 else 'FAILED'
+                self._current_build.set_state(state)
+                db.commit()
+            except InterfaceError:
+                # Can happen when task gets canceled due to disconnection
+                pass
         self._reset_current_build()
 
     def _reset_current_build(self):
         self._current_build = None
 
+    # pylint:disable = too-many-arguments
     async def _prepare_module(self, git_dir, work_tree, remote_url,
-                              commit_or_branch):
+                              commit_or_branch, build_log):
         abs_work_tree = self.work_tree_root() / work_tree
         abs_work_tree.mkdir(parents=True, exist_ok=True)
         abs_git_dir = self.git_root() / git_dir
         abs_git_dir.mkdir(parents=True, exist_ok=True)
 
-        await git.init_or_update(abs_git_dir, "origin", remote_url,
-                                 logger=self._logger)
+        await git.init_or_update(abs_git_dir, "origin", remote_url, build_log)
         await git.fetch(abs_git_dir, "origin", commit_or_branch.split("/")[-1],
-                        logger=self._logger)
+                        build_log)
         await git.checkout(abs_git_dir, abs_work_tree, commit_or_branch,
-                           logger=self._logger)
-        await git.clean(abs_git_dir, abs_work_tree, logger=self._logger)
+                           build_log)
+        await git.clean(abs_git_dir, abs_work_tree, build_log)
         output = await git.init_submodules(abs_git_dir, abs_work_tree,
-                                           logger=self._logger)
+                                           build_log)
 
         submodules = []
         for sm in output.items():
