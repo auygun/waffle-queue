@@ -62,6 +62,8 @@ def get_builds():
         return abort(400)
     return {
         "count": Build.count(),
+        "limit": limit,
+        "offset": offset,
         'content': Build.list(offset, limit, jsonify=True),
     }
 

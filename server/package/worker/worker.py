@@ -4,7 +4,7 @@ import sys
 from pathlib import Path
 from collections import deque
 
-from pymysql.err import OperationalError
+from pymysql.err import OperationalError, InterfaceError
 from . import db, runner, git
 from .task import Task
 from ..build import Build
@@ -103,19 +103,19 @@ class Worker:
             print("Build canceled!")
             self._logger.info("Build canceled!")
         else:
-            db.commit()
             try:
                 if result == 0:
-                    print("Build Succeeded!")
+                    print("Build succeeded!")
                     self._current_build.set_state('SUCCEEDED')
                     self._logger.info("Build succeeded!")
                 else:
                     print("Build failed!")
                     self._current_build.set_state('FAILED')
                     self._logger.info("Build failed!")
-            except OperationalError as e:
-                print(e)
-            db.commit()
+                db.commit()
+            except InterfaceError:
+                # Can happen when task gets canceled due to disconnection
+                pass
         self._reset_current_build()
 
     def _reset_current_build(self):

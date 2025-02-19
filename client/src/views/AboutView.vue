@@ -10,6 +10,7 @@
     <a href="https://github.com/pallets/flask/" target="_blank">flask</a><br>
     <a href="https://github.com/PyMySQL/PyMySQL" target="_blank">pymysql</a><br>
     <a href="https://github.com/ionelmc/python-lazy-object-proxy" target="_blank">lazy-object-proxy</a><br>
+    <a href="https://github.com/jpadilla/pyjwt" target="_blank">pyjwt</a><br>
     <a href="https://github.com/MariaDB/server" target="_blank">mariadb</a><br>
   </div>
 </template>

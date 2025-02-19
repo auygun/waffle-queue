@@ -3,11 +3,24 @@ import re
 from . import runner
 
 
+async def rev_list(git_dir, commit, options=None, limit=None, logger=None):
+    if options is None:
+        options = []
+    if limit is not None:
+        options += ["-n", str(limit)]
+    output = await runner.run([
+        "git",
+        f"--git-dir={git_dir}",
+        "rev-list"] + options + [commit],
+        output=runner.PIPE, logger=logger)
+    return output.splitlines()
+
+
 async def init_or_update(git_dir, name, url, logger=None):
     if (git_dir / "config").exists():
         existing_url = None
         remotes = await list_remotes(git_dir, logger=logger)
-        for existing_remote in remotes.splitlines():
+        for existing_remote in remotes:
             remote_name, remote_url, _ = existing_remote.split()
             if remote_name == name:
                 existing_url = remote_url
@@ -41,11 +54,12 @@ async def set_remote_url(git_dir, remote, url, logger=None):
 
 
 async def list_remotes(git_dir, logger=None):
-    return await runner.run([
+    output = await runner.run([
         "git",
         f"--git-dir={git_dir}",
         "remote",
         "-v"], output=runner.PIPE, logger=logger)
+    return output.splitlines()
 
 
 async def fetch(git_dir, remote, refspec, recurse_submodules="no", logger=None):
