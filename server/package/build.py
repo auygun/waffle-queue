@@ -3,17 +3,17 @@ from .entity import Entity
 
 
 class Build(Entity):
-    def integration(self):
-        return self._fetch('integration') == 1
+    def request(self):
+        return self._fetch('request')
+
+    def build_config(self):
+        return self._fetch('build_config')
 
     def remote_url(self):
         return self._fetch('remote_url')
 
     def source_branch(self):
         return self._fetch('source_branch')
-
-    def target_branch(self):
-        return self._fetch('target_branch')
 
     def build_script(self):
         return self._fetch('build_script')
@@ -24,8 +24,15 @@ class Build(Entity):
     def state(self):
         return self._fetch('state')
 
+    def is_open(self):
+        state = self._fetch('state')
+        return state in {'BUILDING', 'REQUESTED'}
+
     def is_building(self):
         return self._fetch('state') == 'BUILDING'
+
+    def is_succeeded(self):
+        return self._fetch('state') == 'SUCCEEDED'
 
     def set_state(self, value):
         return self._update('state', value)
@@ -40,41 +47,42 @@ class Build(Entity):
     def jsonify(self):
         return {
             "id": self.id(),
-            "integration": self.integration(),
+            "request": self.request(),
+            "build_config": self.build_config(),
             "remote_url": self.remote_url(),
             "source_branch": self.source_branch(),
-            "target_branch": self.target_branch(),
             "build_script": self.build_script(),
             "state": self.state()
         }
 
+    # pylint:disable = too-many-arguments
     @staticmethod
-    def new(integration, remote_url, source_branch, target_branch, build_script,
-            work_dir, state='REQUESTED'):
+    def create(request, build_config, remote_url, source_branch, build_script,
+               work_dir, state='REQUESTED'):
         with db.cursor() as cursor:
             cursor.execute("INSERT INTO builds"
-                           " (integration, remote_url, source_branch,"
-                           "  target_branch, build_script, work_dir, state)"
+                           " (request, build_config, remote_url, source_branch,"
+                           "  build_script, work_dir, state)"
                            " VALUES (%s, %s, %s, %s, %s, %s, %s) RETURNING id",
-                           (integration, remote_url, source_branch,
-                            target_branch, build_script, work_dir, state))
-        return Build(*cursor.fetchone())
+                           (request, build_config, remote_url, source_branch,
+                            build_script, work_dir, state))
+            return Build(*cursor.fetchone())
 
     @staticmethod
-    def count():
+    def count(request):
         with db.cursor() as cursor:
-            cursor.execute("SELECT COUNT(*) FROM builds")
-        return cursor.fetchone()[0]
+            cursor.execute("SELECT COUNT(*) FROM builds"
+                           " WHERE request=%s", (request))
+            return cursor.fetchone()[0]
 
     @staticmethod
-    def list(offset, limit, jsonify=False):
+    def list(request, jsonify=False):
         with db.cursor() as cursor:
-            cursor.execute("SELECT id FROM builds ORDER BY id DESC"
-                           " LIMIT %s OFFSET %s", (limit, offset))
+            cursor.execute("SELECT id FROM builds WHERE request=%s"
+                           " ORDER BY id DESC", (request))
             if jsonify:
                 return [Build(*row).jsonify() for row in cursor]
-            else:
-                return [Build(*row) for row in cursor]
+            return [Build(*row) for row in cursor]
 
     @staticmethod
     def clear():
@@ -88,13 +96,13 @@ class Build(Entity):
         build = None
         db.commit()  # Start new transaction
         with db.cursor() as cursor:
-            build_ids = cursor.execute("SELECT id FROM builds"
-                                       " WHERE state='REQUESTED'"
-                                       " ORDER BY id"
-                                       " FOR UPDATE SKIP LOCKED")
-            build_ids = cursor.fetchone()
-            if build_ids is not None:
-                build = Build(*build_ids)
+            cursor.execute("SELECT id FROM builds"
+                           " WHERE state='REQUESTED'"
+                           " ORDER BY id"
+                           " FOR UPDATE SKIP LOCKED")
+            build_id = cursor.fetchone()
+            if build_id is not None:
+                build = Build(*build_id)
                 build.set_state('BUILDING')
         db.commit()  # Release locks
         return build

@@ -1,14 +1,13 @@
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 import time
-
 from flask import Blueprint, Response, request, abort, send_file, stream_with_context
 import werkzeug.exceptions as ex
-from pymysql.err import OperationalError
+from pymysql.err import OperationalError, IntegrityError
 import lazy_object_proxy
 import jwt
-
 from ..build import Build
+from ..request import Request
 from ..logger import Logger
 from . import db
 
@@ -54,42 +53,52 @@ def db_commit(_exc):
         pass
 
 
-@bp.route('/builds', methods=['GET'])
-def get_builds():
+@bp.route('/requests', methods=['GET'])
+def get_requests():
     limit = request.args.get("limit", 25, type=int)
     offset = request.args.get("offset", 0, type=int)
     if limit < 1 or limit > 100 or offset < 0:
         return abort(400)
     return {
-        "count": Build.count(),
+        "count": Request.count(),
         "limit": limit,
         "offset": offset,
-        'content': Build.list(offset, limit, jsonify=True),
+        'content': Request.list(offset, limit, jsonify=True),
     }
 
 
-@bp.route("/request", methods=["POST"])
-def integrate():
+@bp.route('/builds/<request_id>', methods=['GET'])
+def get_builds(request_id):
+    return {
+        "count": Build.count(request_id),
+        "request_id": request_id,
+        'content': Build.list(request_id, jsonify=True),
+    }
+
+
+@bp.route("/new_request", methods=["POST"])
+def new_request():
+    project_name = request.form.get("project-name", "", type=str)
     request_type = request.form.get("request-type", "", type=str)
-    remote_url = request.form.get("remote-url", "", type=str)
     source_branch = request.form.get("source-branch", "", type=str)
     target_branch = request.form.get("target-branch", "", type=str)
-    build_script = request.form.get("build-script", "", type=str)
-    work_dir = request.form.get("work-dir", "", type=str)
-    if any(i == "" for i in [remote_url, source_branch, build_script]):
+    if any(i == "" for i in [project_name, source_branch]):
         return abort(400)
     if request_type != "Integration" and request_type != "Build":
         return abort(400)
     if request_type == "Integration" and target_branch == "":
         return abort(400, "Missing target branch name")
-    Build.new(request_type == "Integration", remote_url, source_branch,
-              target_branch, build_script, work_dir)
+    try:
+        Request.create(project_name, request_type == "Integration",
+                       source_branch, target_branch)
+    except IntegrityError:
+        return abort(400, "Unknown project")
     return {}
 
 
-@bp.route("/abort/<build_id>", methods=["POST"])
-def abort_build(build_id):
-    Build(build_id).abort()
+@bp.route("/abort/<request_id>", methods=["POST"])
+def abort_request(request_id):
+    Request(request_id).abort()
     return {}
 
 
@@ -145,7 +154,7 @@ def get_result(build_id, item):
                         time.sleep(1)
                         timeout += 1
                         if timeout > 30:
-                            yield "\nTimeout!"
+                            yield "\n..."
                             break
                         continue
                     timeout = 0

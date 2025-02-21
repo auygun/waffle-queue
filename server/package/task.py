@@ -7,12 +7,14 @@ class Task:
         self._coro_func = coro_func
         self._task = None
         self._done_cb = done_cb
+        self._args = None
 
     def running(self):
         return self._task is not None
 
     def start(self, *args):
         if not self._task:
+            self._args = args
             self._task = self._task_group.create_task(self._coro_func(*args))
             self._task.add_done_callback(self._done)
 
@@ -32,6 +34,6 @@ class Task:
             try:
                 result = task.result()
             except asyncio.CancelledError:
-                self._done_cb('CANCELED')
+                self._done_cb('CANCELED', *self._args)
             else:
-                self._done_cb(result)
+                self._done_cb(result, *self._args)

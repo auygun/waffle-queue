@@ -5,29 +5,25 @@ import TextInput from '@/components/TextInput.vue'
 import type { AxiosError } from 'axios'
 
 const LAST_REQUEST_VIEW_REQUEST_TYPE = "LastRequestViewRequestType"
-const LAST_REQUEST_VIEW_REMOTE_URL = "LastRequestViewRemoteUrl"
+const LAST_REQUEST_VIEW_PROJECT = "LastRequestViewProject"
 const LAST_REQUEST_VIEW_SOURCE_BRANCH = "LastRequestViewSourceBranch"
 const LAST_REQUEST_VIEW_TARGET_BRANCH = "LastRequestViewTargetBranch"
-const LAST_REQUEST_VIEW_BUILD_SCRIPT = "LastRequestViewBuildScript"
-const LAST_REQUEST_VIEW_WORK_DIR = "LastRequestViewWorkDir"
 
 const emit = defineEmits<{
   toastEvent: [message: [string, string]]
 }>()
 
 const requestType: Ref<string> = ref(getRequestType())
-const remoteUrl: Ref<string> = ref(getRemoteUrl())
+const project: Ref<string> = ref(getProject())
 const sourceBranch: Ref<string> = ref(getSourceBranch())
 const targetBranch: Ref<string> = ref(getTargetBranch())
-const buildScript: Ref<string> = ref(getBuildScript())
-const workDir: Ref<string> = ref(getWorkDir())
 
 watch(requestType, (newValue) => {
   localStorage.setItem(LAST_REQUEST_VIEW_REQUEST_TYPE, newValue)
 })
 
-watch(remoteUrl, (newValue) => {
-  localStorage.setItem(LAST_REQUEST_VIEW_REMOTE_URL, newValue)
+watch(project, (newValue) => {
+  localStorage.setItem(LAST_REQUEST_VIEW_PROJECT, newValue)
 })
 
 watch(sourceBranch, (newValue) => {
@@ -38,14 +34,6 @@ watch(targetBranch, (newValue) => {
   localStorage.setItem(LAST_REQUEST_VIEW_TARGET_BRANCH, newValue)
 })
 
-watch(buildScript, (newValue) => {
-  localStorage.setItem(LAST_REQUEST_VIEW_BUILD_SCRIPT, newValue)
-})
-
-watch(workDir, (newValue) => {
-  localStorage.setItem(LAST_REQUEST_VIEW_WORK_DIR, newValue)
-})
-
 function getRequestType(): string {
   try {
     const cachedValue = localStorage.getItem(LAST_REQUEST_VIEW_REQUEST_TYPE)
@@ -53,9 +41,9 @@ function getRequestType(): string {
   } catch { return "" }
 }
 
-function getRemoteUrl(): string {
+function getProject(): string {
   try {
-    const cachedValue = localStorage.getItem(LAST_REQUEST_VIEW_REMOTE_URL)
+    const cachedValue = localStorage.getItem(LAST_REQUEST_VIEW_PROJECT)
     return cachedValue ? cachedValue : ""
   } catch { return "" }
 }
@@ -74,31 +62,15 @@ function getTargetBranch(): string {
   } catch { return "" }
 }
 
-function getBuildScript(): string {
-  try {
-    const cachedValue = localStorage.getItem(LAST_REQUEST_VIEW_BUILD_SCRIPT)
-    return cachedValue ? cachedValue : ""
-  } catch { return "" }
-}
-
-function getWorkDir(): string {
-  try {
-    const cachedValue = localStorage.getItem(LAST_REQUEST_VIEW_WORK_DIR)
-    return cachedValue ? cachedValue : ""
-  } catch { return "" }
-}
-
 async function request() {
   try {
     const formData = new FormData()
     formData.append('request-type', requestType.value)
-    formData.append('remote-url', remoteUrl.value)
+    formData.append('project-name', project.value)
     formData.append('source-branch', sourceBranch.value)
     if (requestType.value === "Integration")
       formData.append('target-branch', targetBranch.value)
-    formData.append('build-script', buildScript.value)
-    formData.append('work-dir', workDir.value)
-    await useAxios().postFormData('/api/v1/request', formData)
+    await useAxios().postFormData('/api/v1/new_request', formData)
   } catch (error) {
     emit('toastEvent', AxiosErrorToString(error as AxiosError<string>))
   }
@@ -110,15 +82,11 @@ async function request() {
     <label><input type="radio" v-model="requestType" value="Integration"> Integration</label>
     <label><input type="radio" v-model="requestType" value="Build"> Build</label>
   </div>
-  <TextInput :icon="'alternate_email'" :placeholder="'Remote URL'" v-model:text="remoteUrl" />
+  <TextInput :icon="'workspaces'" :placeholder="'Project'" v-model:text="project" />
   <div class="fit-stretch">
     <TextInput :icon="'merge_type'" :placeholder="'Source branch'" v-model:text="sourceBranch" />
     <TextInput :icon="'merge_type'" :placeholder="'Target branch'" v-model:text="targetBranch" :mirror-icon="true"
       :disabled="requestType === 'Build'" />
-  </div>
-  <div class="fit-stretch">
-    <TextInput :icon="'directions_run'" :placeholder="'Build script'" v-model:text="buildScript" />
-    <TextInput :icon="'directions'" :placeholder="'Work directory'" v-model:text="workDir" />
   </div>
   <div class="center">
     <button @click="request">Request</button>

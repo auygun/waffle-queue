@@ -57,8 +57,15 @@ server {
 }
 ```
 
+### Run the scheduler daemon:
+Scheduler puts build jobs in the queue for workers and integrates branches.
+```text
+cd server
+./scheduler.py
+```
+
 ### Run a worker daemon:
-Workers pull and run jobs from queue.
+Workers pull and run build jobs from queue.
 ```text
 cd server
 ./worker.py

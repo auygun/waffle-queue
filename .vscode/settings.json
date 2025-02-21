@@ -4,5 +4,8 @@
     "--disable=c0114", // Missing module docstring
     "--disable=c0115", // Missing class docstring
     "--disable=c0116" // Missing function or method docstring
+  ],
+  "cSpell.words": [
+    "jsonify"
   ]
 }

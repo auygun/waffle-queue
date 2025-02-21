@@ -7,21 +7,31 @@ import type { AxiosError } from 'axios'
 
 const LAST_QUEUE_VIEW_RECORDS_PER_PAGE = "LastQueueViewRecordsPerPage"
 
-type Build = {
+type Request = {
   id: number
+  project: string
   integration: boolean
-  remote_url: string
   source_branch: string
   target_branch: string
-  build_script: string
   state: string
 }
 
 type Row = {
-  build: Build
+  request: Request
+  builds: Build[]
   isDetail: boolean
   expanded: boolean
   bgColor: string
+}
+
+type Build = {
+  id: number
+  request: number
+  build_config: string
+  remote_url: string
+  source_branch: string
+  build_script: string
+  state: string
 }
 
 const props = defineProps({
@@ -37,7 +47,7 @@ const emit = defineEmits<{
 
 const rows: Ref<Row[]> = ref([])
 
-const builds: Ref<Build[]> = ref([])
+const requests: Ref<Request[]> = ref([])
 
 const totalRecords: Ref<number> = ref(0)
 const recordsPerPage: Ref<number> = ref(getRecordsPerPage(5))
@@ -54,7 +64,7 @@ watch(page,
 watch(() => props.offset,
   async () => {
     page.value = getPageForOffset()
-    await updateBuilds()
+    await updateBuildQueue()
   },
   { immediate: true }
 )
@@ -62,7 +72,7 @@ watch(() => props.offset,
 watch(recordsPerPage,
   async (newValue) => {
     localStorage.setItem(LAST_QUEUE_VIEW_RECORDS_PER_PAGE, newValue.toString())
-    await updateBuilds()
+    await updateBuildQueue()
   }
 )
 
@@ -81,21 +91,31 @@ function getRecordsPerPage(defaultValue: number): number {
   } catch { return defaultValue }
 }
 
-async function updateBuilds() {
+async function updateBuildQueue() {
   loading.value = true
   syncError.value = false
   try {
-    const response = await useAxios().get('/api/v1/builds', {
+    const response = await useAxios().get('/api/v1/requests', {
       offset: Number(props.offset),
       limit: recordsPerPage.value,
     })
     totalRecords.value = response.data.count
-    builds.value = response.data.content
+    requests.value = response.data.content
     rows.value = []
-    for (let i = 0; i < builds.value.length; ++i) {
+    for (let i = 0; i < requests.value.length; ++i) {
+      let builds: Build[] = []
+      try {
+        const response = await useAxios().get(`/api/v1/builds/${requests.value[i].id}`)
+        builds = response.data.content
+      } catch (error) {
+        syncError.value = true
+        emit('toastEvent', AxiosErrorToString(error as AxiosError<string>))
+      } finally {
+        loading.value = false
+      }
       const color = i % 2 !== 0 ? "var(--accent-bg)" : "var(--bg)"
-      rows.value.push({ build: builds.value[i], isDetail: false, expanded: false, bgColor: color })
-      rows.value.push({ build: builds.value[i], isDetail: true, expanded: false, bgColor: color })
+      rows.value.push({ request: requests.value[i], builds: builds, isDetail: false, expanded: false, bgColor: color })
+      rows.value.push({ request: requests.value[i], builds: builds, isDetail: true, expanded: false, bgColor: color })
     }
   } catch (error) {
     syncError.value = true
@@ -105,11 +125,11 @@ async function updateBuilds() {
   }
 }
 
-async function abort(build_id: number) {
+async function abort(request_id: number) {
   try {
     const formData = new FormData()
-    await useAxios().postFormData(`/api/v1/abort/${build_id}`, formData)
-    await updateBuilds()
+    await useAxios().postFormData(`/api/v1/abort/${request_id}`, formData)
+    await updateBuildQueue()
   } catch (error) {
     emit('toastEvent', AxiosErrorToString(error as AxiosError<string>))
   }
@@ -130,34 +150,34 @@ async function getPublicUrl(build_id: number) {
   }
 }
 
-function isRequested(build: Build): boolean {
-  return build.state === "REQUESTED"
+function isRequested(state: string): boolean {
+  return state === "REQUESTED"
 }
 
-function isBuilding(build: Build): boolean {
-  return build.state === "BUILDING"
+function isBuilding(state: string): boolean {
+  return state === "BUILDING"
 }
 
-function isSucceeded(build: Build): boolean {
-  return build.state === "SUCCEEDED"
+function isSucceeded(state: string): boolean {
+  return state === "SUCCEEDED"
 }
 
-function isAborted(build: Build): boolean {
-  return build.state === "ABORTED"
+function isAborted(state: string): boolean {
+  return state === "ABORTED"
 }
 
-function isAbortable(build: Build): boolean {
-  return isRequested(build) || isBuilding(build)
+function isAbortable(state: string): boolean {
+  return isRequested(state) || isBuilding(state)
 }
 
-function stateColor(build: Build): string {
-  if (isRequested(build))
+function stateColor(state: string): string {
+  if (isRequested(state))
     return "Bisque"
-  else if (isBuilding(build))
+  else if (isBuilding(state))
     return "Aquamarine"
-  else if (isSucceeded(build))
+  else if (isSucceeded(state))
     return "SpringGreen"
-  else if (isAborted(build))
+  else if (isAborted(state))
     return "Orange"
   return "OrangeRed"
 }
@@ -177,7 +197,7 @@ const allExpanded: ComputedRef<boolean> = computed(() => {
 
 <template>
   <Paginator :loading="loading" :sync-error="syncError" :total-rows="totalRecords" v-model:page="page"
-    v-model:rows-per-page="recordsPerPage" @reload="async () => { await updateBuilds() }"
+    v-model:rows-per-page="recordsPerPage" @reload="async () => { await updateBuildQueue() }"
     :storage-prefix="String('queueView')" />
 
   <div style="margin-top: 1rem;"></div>
@@ -207,31 +227,37 @@ const allExpanded: ComputedRef<boolean> = computed(() => {
               <span v-if="r.expanded" @click="onToggleExpand(index)" class="material-icons no-select">expand_less</span>
             </div>
           </td>
-          <td v-if="!r.isDetail">{{ r.build.id }}</td>
+          <td v-if="!r.isDetail">{{ r.request.id }}</td>
           <td v-if="!r.isDetail">
-            <mark :style="{ 'background-color': stateColor(r.build) }">{{ r.build.state }}</mark>
+            <mark :style="{ 'background-color': stateColor(r.request.state) }">{{ r.request.state }}</mark>
           </td>
-          <td v-if="!r.isDetail">{{ r.build.source_branch }}</td>
+          <td v-if="!r.isDetail">{{ r.request.source_branch }}</td>
           <td v-if="!r.isDetail">
             <div class="center">
-              <button @click="abort(r.build.id)" title="Abort" :disabled="!isAbortable(r.build)">
-                <span class="material-icons">cancel</span>
-              </button>
-              <button @click="router.push({ path: '/log', query: { buildId: r.build.id } })" title="Log"
-                :disabled="isRequested(r.build)">
-                <span class="material-icons">article</span>
-              </button>
-              <button @click="showBuildLog(r.build.id)" title="Build log" :disabled="isRequested(r.build)">
-                <span class="material-icons">feed</span>
-              </button>
-              <button @click="getPublicUrl(r.build.id)" title="Copy public URL" :disabled="isRequested(r.build)">
-                <span class="material-icons">link</span>
+              <button @click="abort(r.request.id)" title="Abort" :disabled="!isAbortable(r.request.state)" class="small-button">
+                <span class="material-icons button-icon">cancel</span>
               </button>
             </div>
           </td>
           <td v-if="r.isDetail && r.expanded" colspan="5">
-            <div style="white-space: wrap;">
-              {{ r.build }}
+            <div class="details-box">
+              <div v-for="(b, index) in r.builds" :key="index" class="notice build-details">
+                Build Id: {{ b.id }}<br>
+                {{ b.build_config }}<br>
+                <mark :style="{ 'background-color': stateColor(b.state) }">{{ b.state }}</mark>
+                <div class="center">
+                  <button @click="router.push({ path: '/log', query: { buildId: b.id } })" title="Log"
+                    :disabled="isRequested(b.state)" class="small-button">
+                    <span class="material-icons button-icon">article</span>
+                  </button>
+                  <button @click="showBuildLog(b.id)" title="Build log" :disabled="isRequested(b.state)" class="small-button">
+                    <span class="material-icons button-icon">feed</span>
+                  </button>
+                  <button @click="getPublicUrl(b.id)" title="Copy public URL" :disabled="isRequested(b.state)" class="small-button">
+                    <span class="material-icons button-icon">link</span>
+                  </button>
+                </div>
+              </div>
             </div>
           </td>
         </tr>
@@ -249,13 +275,13 @@ td:nth-child(3) {
   white-space: nowrap;
 }
 
-td>div>button {
+.small-button {
   margin: 0.2rem;
   padding: 0 0.04rem;
   font-size: 0;
 }
 
-td>div>button>span {
+.button-icon {
   font-size: 1.0rem;
 }
 
@@ -263,6 +289,20 @@ td>div>button>span {
   display: flex;
   justify-content: center;
   align-items: center;
+}
+
+.details-box {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  white-space: wrap;
+}
+
+.build-details {
+  margin: 1rem;
+  min-width: 10rem;
+  text-align: center;
 }
 
 .no-select {

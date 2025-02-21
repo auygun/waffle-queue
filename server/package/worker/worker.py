@@ -98,7 +98,7 @@ class Worker:
 
         return 0
 
-    def _on_build_finished(self, result):
+    def _on_build_finished(self, result, _):
         if result == 'CANCELED':
             print("Build canceled!")
             self._logger.info("Build canceled!")
