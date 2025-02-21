@@ -1,12 +1,12 @@
 import asyncio
-import signal
-import sys
 from pathlib import Path
 from collections import deque
 
 from pymysql.err import OperationalError, InterfaceError
-from . import db, runner, git
-from .task import Task
+from . import db
+from .. import runner, git
+from ..shutdown_handler import ShutdownHandler
+from ..task import Task
 from ..build import Build
 from ..logger import Logger
 
@@ -145,20 +145,6 @@ class Worker:
                                sm[1][0],
                                sm[1][1]])
         return submodules
-
-
-class ShutdownHandler:
-    def __init__(self):
-        self.shutdown = False
-        signal.signal(signal.SIGINT, self.signal_caught)
-        signal.signal(signal.SIGTERM, self.signal_caught)
-
-    def signal_caught(self, *_args):
-        self.shutdown_gracefully("Signal caught")
-
-    def shutdown_gracefully(self, reason):
-        print(f"{reason}, shuting down gracefully.", file=sys.stderr)
-        self.shutdown = True
 
 
 async def _main():
