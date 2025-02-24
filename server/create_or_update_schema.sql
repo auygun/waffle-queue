@@ -6,8 +6,7 @@ CREATE TABLE IF NOT EXISTS settings (
 );
 
 INSERT IGNORE settings (name, value)
-VALUE
-  ("log_level", "TRACE");
+  VALUE ("log_level", "TRACE");
 
 CREATE TABLE IF NOT EXISTS log_level (
   severity VARCHAR(5) PRIMARY KEY,
@@ -15,13 +14,7 @@ CREATE TABLE IF NOT EXISTS log_level (
 );
 
 INSERT IGNORE log_level (severity, rank)
-VALUE
-  ('FATAL', 1),
-  ('ERROR', 2),
-  ('WARN', 3),
-  ('INFO', 4),
-  ('DEBUG', 5),
-  ('TRACE', 6);
+  VALUE ('FATAL', 1), ('ERROR', 2), ('WARN', 3), ('INFO', 4), ('DEBUG', 5), ('TRACE', 6);
 
 CREATE TABLE IF NOT EXISTS projects (
   id TINYINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -79,16 +72,13 @@ CREATE TABLE IF NOT EXISTS logs (
 --
 
 INSERT IGNORE projects (name, remote_url)
-VALUE
-  ("test-project", "/home/auygun/code/proj2/proj.git");
+  VALUE ("test-project", "/home/auygun/code/proj2/proj.git");
 
 INSERT IGNORE build_configs (project, name, build_script, work_dir)
-VALUE
-  ((SELECT id FROM projects WHERE name="test-project"), "Debug", "build/build.py", "");
+  VALUE ((SELECT id FROM projects WHERE name="test-project"), "Debug", "build/build.py", "");
 
 INSERT IGNORE build_configs (project, name, build_script, work_dir)
-VALUE
-  ((SELECT id FROM projects WHERE name="test-project"), "Release", "build/build.py", "");
+  VALUE ((SELECT id FROM projects WHERE name="test-project"), "Release", "build/build.py", "");
 
 
 
