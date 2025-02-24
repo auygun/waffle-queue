@@ -286,10 +286,12 @@ const allExpanded: ComputedRef<boolean> = computed(() => {
 </template>
 
 <style scoped>
-td:last-child,
-td:nth-child(3) {
-  font-size: 0.9rem;
+td:last-child {
   white-space: nowrap;
+}
+
+mark {
+  font-size: 1rem;
 }
 
 .small-button {
@@ -299,7 +301,7 @@ td:nth-child(3) {
 }
 
 .button-icon {
-  font-size: 1.0rem;
+  font-size: 1.2rem;
 }
 
 .center {
@@ -318,7 +320,8 @@ td:nth-child(3) {
 
 .build-details {
   margin: 1rem;
-  min-width: 10rem;
+  padding: 1rem;
+  min-width: 15rem;
   text-align: center;
 }
 

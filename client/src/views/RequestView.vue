@@ -97,7 +97,7 @@ async function request() {
 .fit-stretch {
   display: flex;
   flex-wrap: wrap;
-  column-gap: 1em;
+  column-gap: 1.5rem;
 }
 
 .fit-stretch>* {
