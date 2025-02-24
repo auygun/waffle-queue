@@ -5,24 +5,24 @@ from . import db
 
 
 class Logger:
-    def __init__(self, build_id_cb):
-        self._build_id_cb = build_id_cb
+    def __init__(self, server_id):
+        self._server_id = server_id
 
-    def list(self, build_id, max_severity=None, jsonify=False):
+    def list(self, server_id, max_severity=None, jsonify=False):
         if max_severity is None:
             with db.cursor() as cursor:
                 cursor.execute("SELECT value FROM settings"
                                " WHERE name='log_level'")
                 max_severity = cursor.fetchone()[0]
         with db.cursor() as cursor:
-            cursor.execute("SELECT build_id, timestamp, severity, message"
+            cursor.execute("SELECT server_id, timestamp, severity, message"
                            " FROM logs WHERE severity<="
                            " (SELECT rank FROM log_level"
-                           "  WHERE severity=%s and build_id=%s)"
+                           "  WHERE severity=%s and server_id=%s)"
                            " ORDER BY id",
-                           (max_severity, build_id))
+                           (max_severity, server_id))
             if jsonify:
-                keys = ["build_id", "timestamp", "severity", "message"]
+                keys = ["server_id", "timestamp", "severity", "message"]
                 return [dict(zip(keys, row)) for row in cursor]
             else:
                 return list(cursor)
@@ -93,6 +93,6 @@ class Logger:
     def _log(self, severity, message):
         with db.cursor() as cursor:
             cursor.execute(
-                "INSERT INTO logs (build_id, severity, message)"
+                "INSERT INTO logs (server_id, severity, message)"
                 " VALUES (%s, %s, %s)",
-                (self._build_id_cb(), severity, message))
+                (self._server_id, severity, message))
