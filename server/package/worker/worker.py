@@ -39,6 +39,7 @@ class Worker:
         await self._current_build_task.cancel()
 
     async def update(self):
+        # Cancel task if the current build request was aborted.
         if (self._current_build is not None and
                 self._current_build_task.running()):
             db.commit()  # Needed for query to be up-to-date
@@ -46,6 +47,7 @@ class Worker:
             if state is None or state == 'ABORTED':
                 await self._current_build_task.cancel()
 
+        # Check for new requests if this worker is idle.
         if self._current_build is None:
             build_request = Build.pop_next_build_request()
             if build_request is not None:
@@ -72,6 +74,7 @@ class Worker:
         ]])
 
         try:
+            # Fetch and checkout root module and all submodules.
             while True:
                 try:
                     module = modules.popleft()
@@ -82,6 +85,7 @@ class Worker:
                 for sm in submodules:
                     modules.append(sm)
 
+            # Run the build script.
             result_dir = self.result_dir() / str(self._current_build.id())
             result_dir.mkdir(parents=True, exist_ok=True)
             log_file = result_dir / "build.log"

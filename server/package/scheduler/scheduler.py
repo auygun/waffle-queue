@@ -15,15 +15,20 @@ class Scheduler:
         self._requests = {}
 
     async def update(self):
+        # Cancel tasks for aborted requests.
         for value in self._requests.values():
             db.commit()  # Needed for query to be up-to-date
             state = value[0].state()
             if state is None or state == 'ABORTED':
                 await value[1].cancel()
 
+        # Check for new requests.
         db.commit()  # Needed for query to be up-to-date
         new_requests = Request.get_new_requests()
         for request in new_requests:
+            # Start processing build request right away. Integration requests
+            # that are for the same branch must wait until the previous request
+            # completes.
             key = (request.project(), request.target_branch()
                    if request.integration() else request.id())
             if key not in self._requests:
@@ -45,6 +50,8 @@ class Scheduler:
 
     async def _process_request(self, request):
         print("Processing request: " f"{request.id()}")
+        # Create a build job for each build configuration in the project. Jobs
+        # will be picked up by workers.
         builds = []
         project = Project(request.project())
         for bc in project.build_configs():
@@ -54,6 +61,7 @@ class Scheduler:
             builds.append(b)
         db.commit()
 
+        # Wait for workers to build all configurations.
         while any(b.is_open() for b in builds):
             await asyncio.sleep(2)
 
