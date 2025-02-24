@@ -24,7 +24,7 @@ class Scheduler:
 
     async def update(self):
         # Cancel tasks for aborted requests.
-        for request_data in self._requests.values():
+        for request_data in self._requests.copy().values():
             db.commit()  # Needed for query to be up-to-date
             state = request_data.request.state()
             if state is None or state == 'ABORTED':
@@ -83,7 +83,10 @@ class Scheduler:
         request_data = self._requests[request_key]
         print(f"Request complete: {request_data.request.id()}"
               f" result: {str(result)}")
-        # TODO: abort builds if canceled
+        # Abort builds if request was canceled
+        if result == 'CANCELED':
+            for b in request_data.builds:
+                b.abort()
         del self._requests[request_key]
 
 
