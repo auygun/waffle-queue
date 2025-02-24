@@ -1,4 +1,5 @@
 import asyncio
+from dataclasses import dataclass
 from pymysql.err import OperationalError
 from . import db
 from ..shutdown_handler import ShutdownHandler
@@ -8,19 +9,26 @@ from ..build import Build
 from ..task import Task
 
 
+@dataclass
+class RequestData:
+    request: Request
+    task: Task
+    builds: list[Build]
+
+
 class Scheduler:
     def __init__(self, task_group):
         self._task_group = task_group
-        # (project_id, target_branch or request_id): (request, task)
+        # (project_id, target_branch or request_id): RequestData
         self._requests = {}
 
     async def update(self):
         # Cancel tasks for aborted requests.
-        for value in self._requests.values():
+        for request_data in self._requests.values():
             db.commit()  # Needed for query to be up-to-date
-            state = value[0].state()
+            state = request_data.request.state()
             if state is None or state == 'ABORTED':
-                await value[1].cancel()
+                await request_data.task.cancel()
 
         # Check for new requests.
         db.commit()  # Needed for query to be up-to-date
@@ -37,45 +45,46 @@ class Scheduler:
                 task = Task(
                     self._task_group, self._process_request,
                     self._on_request_complete)
-                self._requests[key] = (request, task)
-                task.start(request)
+                self._requests[key] = RequestData(request, task, [])
+                task.start(key)
 
     async def disconnected(self):
-        for value in self._requests.values():
-            await value[1].cancel()
+        for request_data in self._requests.values():
+            await request_data.task.cancel()
 
     async def shutdown(self):
-        for value in self._requests.values():
-            await value[1].cancel()
+        for request_data in self._requests.values():
+            await request_data.task.cancel()
 
-    async def _process_request(self, request):
-        print("Processing request: " f"{request.id()}")
+    async def _process_request(self, request_key):
+        request_data = self._requests[request_key]
+        print("Processing request: " f"{request_data.request.id()}")
         # Create a build job for each build configuration in the project. Jobs
         # will be picked up by workers.
-        builds = []
-        project = Project(request.project())
+        project = Project(request_data.request.project())
         for bc in project.build_configs():
-            b = Build.create(request.id(), bc.name, project.remote_url(),
-                             request.source_branch(), bc.build_script,
-                             bc.work_dir)
-            builds.append(b)
+            b = Build.create(request_data.request.id(), bc.name,
+                             project.remote_url(),
+                             request_data.request.source_branch(),
+                             bc.build_script, bc.work_dir)
+            request_data.builds.append(b)
         db.commit()
 
         # Wait for workers to build all configurations.
-        while any(b.is_open() for b in builds):
+        while any(b.is_open() for b in request_data.builds):
             await asyncio.sleep(2)
 
-        succeeded = all(b.is_succeeded() for b in builds)
-        request.set_state('SUCCEEDED' if succeeded else 'FAILED')
+        succeeded = all(b.is_succeeded() for b in request_data.builds)
+        request_data.request.set_state('SUCCEEDED' if succeeded else 'FAILED')
         db.commit()
         return succeeded
 
-    def _on_request_complete(self, result, request):
-        print(f"Request complete: {request.id()} result: {str(result)}")
+    def _on_request_complete(self, result, request_key):
+        request_data = self._requests[request_key]
+        print(f"Request complete: {request_data.request.id()}"
+              f" result: {str(result)}")
         # TODO: abort builds if canceled
-        key = (request.project(), request.target_branch()
-               if request.integration() else request.id())
-        del self._requests[key]
+        del self._requests[request_key]
 
 
 async def _main():
