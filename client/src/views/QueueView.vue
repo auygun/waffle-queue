@@ -17,7 +17,7 @@ type Request = {
 }
 
 type Row = {
-  request: Request
+  request: Request | undefined
   builds: Build[]
   isDetail: boolean
   expanded: boolean
@@ -101,7 +101,22 @@ async function updateBuildQueue() {
     })
     totalRecords.value = response.data.count
     requests.value = response.data.content
-    rows.value = []
+
+    // Add or remove rows depending on number requests we have
+    if (rows.value.length < requests.value.length * 2) {
+      for (let i = rows.value.length / 2; i < requests.value.length; ++i) {
+        const color = i % 2 !== 0 ? "var(--accent-bg)" : "var(--bg)"
+        rows.value.push({ request: undefined, builds: [], isDetail: false, expanded: false, bgColor: color })
+        rows.value.push({ request: undefined, builds: [], isDetail: true, expanded: false, bgColor: color })
+      }
+    } else if (rows.value.length > requests.value.length * 2) {
+      for (let i = requests.value.length * 2; i < rows.value.length; ++i) {
+        rows.value.pop()
+        rows.value.pop()
+      }
+    }
+
+    // Fill up rows with data
     for (let i = 0; i < requests.value.length; ++i) {
       let builds: Build[] = []
       try {
@@ -113,9 +128,8 @@ async function updateBuildQueue() {
       } finally {
         loading.value = false
       }
-      const color = i % 2 !== 0 ? "var(--accent-bg)" : "var(--bg)"
-      rows.value.push({ request: requests.value[i], builds: builds, isDetail: false, expanded: false, bgColor: color })
-      rows.value.push({ request: requests.value[i], builds: builds, isDetail: true, expanded: false, bgColor: color })
+      rows.value[i * 2].request = rows.value[(i * 2) + 1].request = requests.value[i]
+      rows.value[i * 2].builds = rows.value[(i * 2) + 1].builds = builds
     }
   } catch (error) {
     syncError.value = true
@@ -234,7 +248,8 @@ const allExpanded: ComputedRef<boolean> = computed(() => {
           <td v-if="!r.isDetail">{{ r.request.source_branch }}</td>
           <td v-if="!r.isDetail">
             <div class="center">
-              <button @click="abort(r.request.id)" title="Abort" :disabled="!isAbortable(r.request.state)" class="small-button">
+              <button @click="abort(r.request.id)" title="Abort" :disabled="!isAbortable(r.request.state)"
+                class="small-button">
                 <span class="material-icons button-icon">cancel</span>
               </button>
             </div>
@@ -250,10 +265,12 @@ const allExpanded: ComputedRef<boolean> = computed(() => {
                     :disabled="isRequested(b.state)" class="small-button">
                     <span class="material-icons button-icon">article</span>
                   </button>
-                  <button @click="showBuildLog(b.id)" title="Build log" :disabled="isRequested(b.state)" class="small-button">
+                  <button @click="showBuildLog(b.id)" title="Build log" :disabled="isRequested(b.state)"
+                    class="small-button">
                     <span class="material-icons button-icon">feed</span>
                   </button>
-                  <button @click="getPublicUrl(b.id)" title="Copy public URL" :disabled="isRequested(b.state)" class="small-button">
+                  <button @click="getPublicUrl(b.id)" title="Copy public URL" :disabled="isRequested(b.state)"
+                    class="small-button">
                     <span class="material-icons button-icon">link</span>
                   </button>
                 </div>
