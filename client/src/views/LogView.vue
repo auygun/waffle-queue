@@ -7,8 +7,15 @@ import router from '@/router';
 
 const LAST_LOG_VIEW_MAX_SEVERITY = "LastLogViewMaxSeverity"
 
+type Log = {
+  server_id: number
+  timestamp: string
+  severity: string
+  message: string
+}
+
 const props = defineProps({
-  buildId: {
+  serverId: {
     type: String,
     default: '',
   },
@@ -18,21 +25,21 @@ const emit = defineEmits<{
   toastEvent: [message: [string, string]]
 }>()
 
-const buildIdInput: Ref<string> = ref("")
+const serverIdInput: Ref<string> = ref("")
 const maxSeverity: Ref<string> = ref(getMaxSeverity("TRACE"))
-const log = ref([])
+const log: Ref<Log[]> = ref([])
 const loading: Ref<boolean> = ref(false)
 const syncError: Ref<boolean> = ref(false)
 
-watch(buildIdInput,
+watch(serverIdInput,
   () => {
-    router.replace({ query: { buildId: buildIdInput.value } })
+    router.replace({ query: { serverId: serverIdInput.value } })
   }
 )
 
-watch(() => props.buildId,
+watch(() => props.serverId,
   async () => {
-    buildIdInput.value = props.buildId
+    serverIdInput.value = props.serverId
     await updateLog()
   },
   { immediate: true }
@@ -53,13 +60,13 @@ function getMaxSeverity(defaultValue: string): string {
 }
 
 async function updateLog() {
-  if (props.buildId === '')
+  if (props.serverId === '')
     return
   loading.value = true
   syncError.value = false
   try {
     const response = await useAxios().get('/api/v1/log', {
-      build_id: props.buildId,
+      server_id: props.serverId,
       max_severity: maxSeverity.value,
     })
     log.value = response.data.content
@@ -75,7 +82,7 @@ async function updateLog() {
 <template>
   <div class="center">
     <ReloadButton :loading="loading" :sync-error="syncError" @reload="async () => { await updateLog() }" />
-    <input class="align-input" v-model.lazy.trim="buildIdInput" placeholder="Build id" type="text" />
+    <input class="align-input" v-model.lazy.trim="serverIdInput" placeholder="Server id" type="text" />
     <select class="align-input" v-model="maxSeverity">
       <option value="FATAL">Fatal</option>
       <option value="ERROR">Error</option>

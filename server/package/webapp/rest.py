@@ -110,13 +110,13 @@ def clear():
 
 @bp.route('/log', methods=['GET'])
 def get_log():
-    build_id = request.args.get("build_id", -1, type=int)
+    server_id = request.args.get("server_id", -1, type=int)
     severity = request.args.get("max_severity", "TRACE", type=str)
-    print(build_id)
-    if build_id < 0:
+    print(server_id)
+    if server_id < 0:
         return abort(400, "Missing build id")
     return {
-        'content': logger.list(build_id, max_severity=severity, jsonify=True)
+        'content': logger.list(server_id, max_severity=severity, jsonify=True)
     }
 
 

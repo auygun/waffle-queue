@@ -21,7 +21,7 @@ const router = createRouter({
     {
       path: '/log',
       name: 'log',
-      props: (route) => ({ buildId: route.query.buildId }),
+      props: (route) => ({ serverId: route.query.serverId }),
       component: () => import('../views/LogView.vue'),
     },
     {
