@@ -177,12 +177,20 @@ function isSucceeded(state: string): boolean {
   return state === "SUCCEEDED"
 }
 
+function isFailed(state: string): boolean {
+  return state === "FAILED"
+}
+
 function isAborted(state: string): boolean {
   return state === "ABORTED"
 }
 
 function isAbortable(state: string): boolean {
   return isRequested(state) || isBuilding(state)
+}
+
+function hasResult(state: string): boolean {
+  return isSucceeded(state) || isFailed(state)
 }
 
 function stateColor(state: string): string {
@@ -270,7 +278,7 @@ const allExpanded: ComputedRef<boolean> = computed(() => {
                     class="small-button">
                     <span class="material-icons button-icon">feed</span>
                   </button>
-                  <button @click="getPublicUrl(b.id)" title="Copy public URL" :disabled="isRequested(b.state)"
+                  <button @click="getPublicUrl(b.id)" title="Copy public URL" :disabled="!hasResult(b.state)"
                     class="small-button">
                     <span class="material-icons button-icon">token</span>
                   </button>
