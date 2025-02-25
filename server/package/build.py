@@ -6,6 +6,9 @@ class Build(Entity):
     def request(self):
         return self._fetch('request')
 
+    def worker_id(self):
+        return self._fetch('worker_id')
+
     def build_config(self):
         return self._fetch('build_config')
 
@@ -37,6 +40,9 @@ class Build(Entity):
     def set_state(self, value):
         return self._update('state', value)
 
+    def set_worker_id(self, value):
+        return self._update('worker_id', value)
+
     def abort(self):
         with db.cursor() as cursor:
             cursor.execute("UPDATE builds SET state = CASE "
@@ -47,7 +53,8 @@ class Build(Entity):
     def jsonify(self):
         return {
             "id": self.id(),
-            "request": self.request(),
+            "request_id": self.request(),
+            "worker_id": self.worker_id(),
             "build_config": self.build_config(),
             "remote_url": self.remote_url(),
             "source_branch": self.source_branch(),
@@ -90,7 +97,7 @@ class Build(Entity):
             cursor.execute("DELETE FROM builds")
 
     @staticmethod
-    def pop_next_build_request():
+    def pop_next_build_request(worker_id):
         # Fetch the next available build request from the queue and mark it as
         # building.
         build = None
@@ -103,6 +110,7 @@ class Build(Entity):
             build_id = cursor.fetchone()
             if build_id is not None:
                 build = Build(*build_id)
+                build.set_worker_id(worker_id)
                 build.set_state('BUILDING')
         db.commit()  # Release locks
         return build

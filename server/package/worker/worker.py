@@ -13,6 +13,8 @@ from ..logger import Logger
 
 class Worker:
     def __init__(self, task_group, server_id):
+        if server_id <= 0:
+            raise TypeError("Server id cannot be zero or negative")
         self._current_build = None
         self._current_build_task = Task(
             task_group, self._start_build, self._on_build_finished)
@@ -49,7 +51,7 @@ class Worker:
 
         # Check for new requests if this worker is idle.
         if self._current_build is None:
-            build_request = Build.pop_next_build_request()
+            build_request = Build.pop_next_build_request(self._server.id())
             if build_request is not None:
                 self._current_build_task.start(build_request)
 

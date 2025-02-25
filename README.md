@@ -65,10 +65,11 @@ cd server
 ```
 
 ### Run a worker daemon:
-Workers pull and run build jobs from queue.
+Workers pull and run build jobs from queue. Each worker takes a unique id as
+argument.
 ```text
 cd server
-./worker.py
+./worker.py 1
 ```
 
 ## Third-party software:

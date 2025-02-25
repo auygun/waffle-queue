@@ -18,7 +18,8 @@ type Request = {
 
 type Build = {
   id: number
-  request: number
+  request_id: number
+  worker_id: number
   build_config: string
   remote_url: string
   source_branch: string
@@ -259,9 +260,9 @@ const allExpanded: ComputedRef<boolean> = computed(() => {
               <div v-for="(b, index) in r.builds" :key="index" class="notice build-details">
                 {{ b.build_config }}<br>
                 <mark :style="{ 'background-color': stateColor(b.state) }">{{ b.state }}</mark><br>
-                Build Id: {{ b.id }}<br>
+                Build {{ b.id }} / Worker {{ b.worker_id ? b.worker_id : '-' }}<br>
                 <div class="center">
-                  <button @click="router.push({ path: '/log', query: { serverId: b.id } })" title="Worker log"
+                  <button @click="router.push({ path: '/log', query: { serverId: b.worker_id } })" title="Worker log"
                     :disabled="isRequested(b.state)" class="small-button">
                     <span class="material-icons button-icon">article</span>
                   </button>
