@@ -101,19 +101,17 @@ class Scheduler:
         request_data = self._requests[request_key]
         print(f"Request complete: {request_data.request.id()}"
               f" result: {str(result)}")
-        self._logger.info(f"Request complete! result: {str(result)}")
+        self._logger.info(f"Request complete: {request_data.request.id()}"
+                          f" result: {str(result)}")
         try:
             # Abort builds if request was canceled
             if result == 'CANCELED':
                 for b in request_data.builds:
                     b.abort()
-                self._logger.info("Request canceled!")
             elif result:
                 request_data.request.set_state('SUCCEEDED')
-                self._logger.info("Request succeeded!")
             else:
                 request_data.request.set_state('FAILED')
-                self._logger.info("Request failed!")
             self._server.set_status('IDLE')
             db.commit()
         except InterfaceError:

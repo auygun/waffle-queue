@@ -15,7 +15,7 @@ class RunProcessError(Exception):
 async def run(cmd, cwd=None, env=None, output=None, logger=None,
               encoding="utf-8"):
     if logger is not None:
-        logger.info(f"Run: '{' '.join(cmd)}'")
+        logger.debug(f"Run: '{' '.join(cmd)}'")
 
     if output is None:
         if logger is None:
@@ -49,13 +49,13 @@ async def run(cmd, cwd=None, env=None, output=None, logger=None,
             stdout = None
 
         if logger is not None:
-            logger.info(f"Exit code: {proc.returncode}")
+            logger.debug(f"Exit code: {proc.returncode}")
         if proc.returncode:
             raise RunProcessError(proc.returncode, stdout)
         return stdout
     except asyncio.CancelledError:
         if logger is not None:
-            logger.info(f"Terminating {cmd[0]}")
+            logger.debug(f"Terminating {cmd[0]}")
         try:
             proc.terminate()
             try:

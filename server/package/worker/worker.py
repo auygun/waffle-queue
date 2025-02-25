@@ -117,18 +117,17 @@ class Worker:
         return 0
 
     def _on_build_finished(self, result, _):
+        print(f"Build finished: {self._current_build.id()}"
+              f" result: {str(result)}")
+        self._logger.info(f"Build finished: {self._current_build.id()}"
+                          f" result: {str(result)}")
         try:
             if result == 'CANCELED':
-                print("Build canceled!")
-                self._logger.info("Build canceled!")
+                pass
             elif result == 0:
-                print("Build succeeded!")
                 self._current_build.set_state('SUCCEEDED')
-                self._logger.info("Build succeeded!")
             else:
-                print("Build failed!")
                 self._current_build.set_state('FAILED')
-                self._logger.info("Build failed!")
             self._server.set_status('IDLE')
             db.commit()
         except InterfaceError:
