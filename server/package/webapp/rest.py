@@ -14,7 +14,7 @@ from . import db
 logger = lazy_object_proxy.Proxy(lambda: Logger(0))
 bp = Blueprint("rest", __name__, url_prefix="/api/v1")
 
-_jwt_secret = "IceCreamFruitWaffle"
+JWT_SECRET = "IceCreamFruitWaffle"
 
 
 def result_dir():
@@ -183,7 +183,7 @@ def get_public_url(build_id, item):
     }
     token = jwt.encode(
         claims,
-        _jwt_secret,
+        JWT_SECRET,
         algorithm="HS256",
     )
     return {
@@ -197,7 +197,7 @@ def public_download(token):
     try:
         decoded = jwt.decode(
             token,
-            _jwt_secret,
+            JWT_SECRET,
             algorithms=["HS256"],
             options={"require": ["exp", "iat"]},
             leeway=2.0,
