@@ -16,14 +16,6 @@ type Request = {
   state: string
 }
 
-type Row = {
-  request: Request | undefined
-  builds: Build[]
-  isDetail: boolean
-  expanded: boolean
-  bgColor: string
-}
-
 type Build = {
   id: number
   request: number
@@ -32,6 +24,14 @@ type Build = {
   source_branch: string
   build_script: string
   state: string
+}
+
+type Row = {
+  request: Request | undefined
+  builds: Build[]
+  isDetail: boolean
+  expanded: boolean
+  bgColor: string
 }
 
 const props = defineProps({
@@ -257,11 +257,11 @@ const allExpanded: ComputedRef<boolean> = computed(() => {
           <td v-if="r.isDetail && r.expanded" colspan="5">
             <div class="details-box">
               <div v-for="(b, index) in r.builds" :key="index" class="notice build-details">
-                Build Id: {{ b.id }}<br>
                 {{ b.build_config }}<br>
-                <mark :style="{ 'background-color': stateColor(b.state) }">{{ b.state }}</mark>
+                <mark :style="{ 'background-color': stateColor(b.state) }">{{ b.state }}</mark><br>
+                Build Id: {{ b.id }}<br>
                 <div class="center">
-                  <button @click="router.push({ path: '/log', query: { buildId: b.id } })" title="Log"
+                  <button @click="router.push({ path: '/log', query: { serverId: b.id } })" title="Worker log"
                     :disabled="isRequested(b.state)" class="small-button">
                     <span class="material-icons button-icon">article</span>
                   </button>
@@ -271,7 +271,7 @@ const allExpanded: ComputedRef<boolean> = computed(() => {
                   </button>
                   <button @click="getPublicUrl(b.id)" title="Copy public URL" :disabled="isRequested(b.state)"
                     class="small-button">
-                    <span class="material-icons button-icon">link</span>
+                    <span class="material-icons button-icon">token</span>
                   </button>
                 </div>
               </div>
@@ -319,9 +319,9 @@ mark {
 }
 
 .build-details {
-  margin: 1rem;
-  padding: 1rem;
-  min-width: 15rem;
+  margin: 0.5rem;
+  padding: 0.5rem;
+  min-width: 19rem;
   text-align: center;
 }
 
