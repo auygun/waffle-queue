@@ -40,5 +40,5 @@ export const useAxios = () => {
 }
 
 export function AxiosErrorToString(error: AxiosError<string>): [string, string] {
-  return [error.response?.status + ' (' + error.response?.statusText + ')', error.response.data]
+  return [error.response?.status + ' (' + error.response?.statusText + ')', error.response?.data ?? '']
 }

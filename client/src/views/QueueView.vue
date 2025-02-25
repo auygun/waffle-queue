@@ -111,7 +111,7 @@ async function updateBuildQueue() {
         rows.value.push({ request: undefined, builds: [], isDetail: true, expanded: false, bgColor: color })
       }
     } else if (rows.value.length > requests.value.length * 2) {
-      for (let i = requests.value.length * 2; i < rows.value.length; ++i) {
+      while (rows.value.length / 2 > requests.value.length) {
         rows.value.pop()
         rows.value.pop()
       }
@@ -141,6 +141,8 @@ async function updateBuildQueue() {
 }
 
 async function abort(request_id: number) {
+  if (request_id < 0)
+    return
   try {
     const formData = new FormData()
     await useAxios().postFormData(`/api/v1/abort/${request_id}`, formData)
@@ -250,14 +252,15 @@ const allExpanded: ComputedRef<boolean> = computed(() => {
               <span v-if="r.expanded" @click="onToggleExpand(index)" class="material-icons no-select">expand_less</span>
             </div>
           </td>
-          <td v-if="!r.isDetail">{{ r.request.id }}</td>
+          <td v-if="!r.isDetail">{{ r.request?.id }}</td>
           <td v-if="!r.isDetail">
-            <mark :style="{ 'background-color': stateColor(r.request.state) }">{{ r.request.state }}</mark>
+            <mark :style="{ 'background-color': stateColor(r.request?.state ?? '') }">{{ r.request?.state }}
+            </mark>
           </td>
-          <td v-if="!r.isDetail">{{ r.request.source_branch }}</td>
+          <td v-if="!r.isDetail">{{ r.request?.source_branch }}</td>
           <td v-if="!r.isDetail">
             <div class="center">
-              <button @click="abort(r.request.id)" title="Abort" :disabled="!isAbortable(r.request.state)"
+              <button @click="abort(r.request?.id ?? -1)" title="Abort" :disabled="!isAbortable(r.request?.state ?? '')"
                 class="small-button">
                 <span class="material-icons button-icon">cancel</span>
               </button>
