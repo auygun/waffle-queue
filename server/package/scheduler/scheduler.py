@@ -24,7 +24,7 @@ class Scheduler:
         # (project_id, target_branch or request_id): RequestData
         self._requests = {}
         # Server id 0 is the scheduler
-        self._server = Server.create(0)
+        self._server = None
         self._logger = Logger(0)
 
     async def update(self):
@@ -54,6 +54,9 @@ class Scheduler:
                 self._requests[key] = RequestData(request, task, [])
                 task.start(key)
 
+    def connected(self):
+        self._server = Server.create(0)
+
     async def disconnected(self):
         for request_data in self._requests.copy().values():
             await request_data.task.cancel()
@@ -61,7 +64,8 @@ class Scheduler:
     async def shutdown(self):
         for request_data in self._requests.copy().values():
             await request_data.task.cancel()
-        self._server.set_status('OFFLINE')
+        if self._server is not None:
+            self._server.set_status('OFFLINE')
         db.commit()
 
     async def _process_request(self, request_key):
@@ -110,7 +114,7 @@ class Scheduler:
             else:
                 request_data.request.set_state('FAILED')
                 self._logger.info("Request failed!")
-            self._server.set_status('BUSY')
+            self._server.set_status('IDLE')
             db.commit()
         except InterfaceError:
             # Can happen when task gets canceled due to disconnection
@@ -133,6 +137,11 @@ async def _main():
                 await asyncio.sleep(5)
                 continue
 
+            try:
+                scheduler.connected()
+            except OperationalError as e:
+                print(e)
+
             while not shutdown.shutdown:
                 try:
                     await scheduler.update()
@@ -142,7 +151,10 @@ async def _main():
                     break
                 await asyncio.sleep(1)
 
-        await scheduler.shutdown()
+        try:
+            await scheduler.shutdown()
+        except (OperationalError, InterfaceError) as e:
+            print(e)
 
 
 def run():

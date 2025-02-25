@@ -18,7 +18,8 @@ class Worker:
         self._current_build = None
         self._current_build_task = Task(
             task_group, self._start_build, self._on_build_finished)
-        self._server = Server.create(server_id)
+        self._server_id = server_id
+        self._server = None
         self._logger = Logger(server_id)
 
     def result_dir(self):
@@ -33,9 +34,17 @@ class Worker:
     def work_tree_root(self):
         return self.project_dir() / "work_tree"
 
+    def connected(self):
+        self._server = Server.create(self._server_id)
+
+    async def disconnected(self):
+        if self._current_build is not None:
+            await self._current_build_task.cancel()
+
     async def shutdown(self):
         await self._current_build_task.cancel()
-        self._server.set_status('OFFLINE')
+        if self._server is not None:
+            self._server.set_status('OFFLINE')
         db.commit()
 
     async def update(self):
@@ -54,10 +63,6 @@ class Worker:
             build_request = Build.pop_next_build_request(self._server.id())
             if build_request is not None:
                 self._current_build_task.start(build_request)
-
-    async def disconnected(self):
-        if self._current_build is not None:
-            await self._current_build_task.cancel()
 
     async def _start_build(self, build_request):
         self._current_build = build_request
@@ -175,6 +180,11 @@ async def _main(server_id):
                 await asyncio.sleep(5)
                 continue
 
+            try:
+                worker.connected()
+            except OperationalError as e:
+                print(e)
+
             while not shutdown.shutdown:
                 try:
                     await worker.update()
@@ -184,7 +194,10 @@ async def _main(server_id):
                     break
                 await asyncio.sleep(1)
 
-        await worker.shutdown()
+        try:
+            await worker.shutdown()
+        except (OperationalError, InterfaceError) as e:
+            print(e)
 
 
 def run(server_id):
