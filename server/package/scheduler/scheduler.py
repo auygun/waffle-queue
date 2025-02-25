@@ -38,7 +38,7 @@ class Scheduler:
                 await request_data.task.cancel()
 
         # Check for new requests.
-        new_requests = Request.get_new_requests()
+        new_requests = Request.get_requests('REQUESTED')
         for request in new_requests:
             # Start processing build request right away. Integration requests
             # that are for the same branch must wait until the previous request
@@ -53,6 +53,17 @@ class Scheduler:
                     self._on_request_complete)
                 self._requests[key] = RequestData(request, task, [])
                 task.start(key)
+
+        # Abort orphaned requests.
+        new_requests = Request.get_requests('BUILDING')
+        for request in new_requests:
+            key = (request.project(), request.target_branch()
+                   if request.integration() else request.id())
+            if key not in self._requests:
+                for b in Build.list(request.id()):
+                    b.abort()
+                request.abort()
+                db.commit()
 
     def connected(self):
         self._server = Server.create(0)
@@ -93,7 +104,7 @@ class Scheduler:
                 await asyncio.sleep(2)
 
             return all(b.is_succeeded() for b in request_data.builds)
-        except InterfaceError:
+        except (OperationalError, InterfaceError):
             # Can happen when task gets canceled due to disconnection
             pass
 
@@ -108,13 +119,14 @@ class Scheduler:
             if result == 'CANCELED':
                 for b in request_data.builds:
                     b.abort()
+                request_data.request.abort()
             elif result:
                 request_data.request.set_state('SUCCEEDED')
             else:
                 request_data.request.set_state('FAILED')
             self._server.set_status('IDLE')
             db.commit()
-        except InterfaceError:
+        except (OperationalError, InterfaceError):
             # Can happen when task gets canceled due to disconnection
             pass
         finally:

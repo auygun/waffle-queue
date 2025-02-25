@@ -76,7 +76,7 @@ class Worker:
         try:
             self._server.set_status('BUSY')
             db.commit()
-        except InterfaceError:
+        except (OperationalError, InterfaceError):
             # Can happen when task gets canceled due to disconnection
             pass
 
@@ -123,14 +123,14 @@ class Worker:
                           f" result: {str(result)}")
         try:
             if result == 'CANCELED':
-                pass
+                self._current_build.abort()
             elif result == 0:
                 self._current_build.set_state('SUCCEEDED')
             else:
                 self._current_build.set_state('FAILED')
             self._server.set_status('IDLE')
             db.commit()
-        except InterfaceError:
+        except (OperationalError, InterfaceError):
             # Can happen when task gets canceled due to disconnection
             pass
         finally:

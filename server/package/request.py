@@ -67,10 +67,10 @@ class Request(Entity):
             return [Request(*row) for row in cursor]
 
     @staticmethod
-    def get_new_requests():
+    def get_requests(state):
         with db.cursor() as cursor:
-            cursor.execute("SELECT id FROM requests WHERE state='REQUESTED'"
-                           " ORDER BY id")
+            cursor.execute("SELECT id FROM requests WHERE state=%s"
+                           " ORDER BY id", (state))
             return [Request(*row) for row in cursor]
 
     @staticmethod
