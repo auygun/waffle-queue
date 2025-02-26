@@ -54,19 +54,16 @@ class Scheduler:
                 self._requests[key] = RequestData(request, task, [])
                 task.start(key)
 
-        # Abort orphaned requests.
-        new_requests = Request.get_requests('BUILDING')
-        for request in new_requests:
-            key = (request.project(), request.target_branch()
-                   if request.integration() else request.id())
-            if key not in self._requests:
-                for b in Build.list(request.id()):
-                    b.abort()
-                request.abort()
-                db.commit()
-
     def connected(self):
         self._server = Server.create(0)
+
+        # Abort orphaned requests.
+        requests = Request.get_requests('BUILDING')
+        for request in requests:
+            for b in Build.list(request.id()):
+                b.abort()
+            request.abort()
+        db.commit()
 
     async def disconnected(self):
         for request_data in self._requests.copy().values():
