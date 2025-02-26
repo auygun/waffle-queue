@@ -7,13 +7,6 @@ import router from '@/router';
 
 const LAST_LOG_VIEW_MAX_SEVERITY = "LastLogViewMaxSeverity"
 
-type Log = {
-  server_id: number
-  timestamp: string
-  severity: string
-  message: string
-}
-
 const props = defineProps({
   serverId: {
     type: String,
@@ -27,7 +20,7 @@ const emit = defineEmits<{
 
 const serverIdInput: Ref<string> = ref("")
 const maxSeverity: Ref<string> = ref(getMaxSeverity("TRACE"))
-const log: Ref<Log[]> = ref([])
+const log: Ref<string> = ref("")
 const loading: Ref<boolean> = ref(false)
 const syncError: Ref<boolean> = ref(false)
 
@@ -92,7 +85,7 @@ async function updateLog() {
       <option value="TRACE">Trace</option>
     </select>
   </div>
-  <pre><code v-for="(entry, index) in log" :key="index" v-bind:title="entry.timestamp">{{ entry.severity }}&#9;{{ entry.message }}<br></code></pre>
+  <pre><code >{{ log }}</code></pre>
 </template>
 
 <style scoped>

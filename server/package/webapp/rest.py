@@ -112,11 +112,12 @@ def clear():
 def get_log():
     server_id = request.args.get("server_id", -1, type=int)
     severity = request.args.get("max_severity", "TRACE", type=str)
-    print(server_id)
     if server_id < 0:
         return abort(400, "Missing build id")
     return {
-        'content': logger.list(server_id, max_severity=severity, jsonify=True)
+        'server_id': server_id,
+        'max_severity': severity,
+        'content': logger.list(server_id, max_severity=severity)
     }
 
 

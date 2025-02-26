@@ -8,24 +8,17 @@ class Logger:
     def __init__(self, server_id):
         self._server_id = server_id
 
-    def list(self, server_id, max_severity=None, jsonify=False):
-        if max_severity is None:
-            with db.cursor() as cursor:
-                cursor.execute("SELECT value FROM settings"
-                               " WHERE name='log_level'")
-                max_severity = cursor.fetchone()[0]
+    def list(self, server_id, max_severity='TRACE'):
         with db.cursor() as cursor:
-            cursor.execute("SELECT server_id, timestamp, severity, message"
+            cursor.execute("SELECT timestamp, severity, message"
                            " FROM logs WHERE severity<="
                            " (SELECT rank FROM log_level"
                            "  WHERE severity=%s and server_id=%s)"
                            " ORDER BY id",
                            (max_severity, server_id))
-            if jsonify:
-                keys = ["server_id", "timestamp", "severity", "message"]
-                return [dict(zip(keys, row)) for row in cursor]
-            else:
-                return list(cursor)
+            return "\n".join(
+                [str(row[0]) + " " + str(row[1]) + "\t" + str(row[2])
+                 for row in cursor])
 
     @contextmanager
     def bulk_logger(self, severity):
