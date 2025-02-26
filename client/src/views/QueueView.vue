@@ -261,7 +261,7 @@ const allExpanded: ComputedRef<boolean> = computed(() => {
           <td v-if="!r.isDetail">
             <div class="center">
               <button @click="abort(r.request?.id ?? -1)" title="Abort" :disabled="!isAbortable(r.request?.state ?? '')"
-                class="small-button">
+                class="small-button center">
                 <span class="material-icons button-icon">cancel</span>
               </button>
             </div>
@@ -274,15 +274,15 @@ const allExpanded: ComputedRef<boolean> = computed(() => {
                 Build {{ b.id }} / Worker {{ b.worker_id ? b.worker_id : '-' }}<br>
                 <div class="center">
                   <button @click="router.push({ path: '/log', query: { serverId: b.worker_id } })" title="Worker log"
-                    :disabled="isRequested(b.state)" class="small-button">
-                    <span class="material-icons button-icon">article</span>
+                    :disabled="isRequested(b.state)" class="small-button center">
+                    <span class="material-icons button-icon">article</span>Work
                   </button>
                   <button @click="showBuildLog(b.id)" title="Build log" :disabled="isRequested(b.state)"
-                    class="small-button">
-                    <span class="material-icons button-icon">feed</span>
+                    class="small-button center">
+                    <span class="material-icons button-icon">feed</span>Log
                   </button>
                   <button @click="getPublicUrl(b.id)" title="Copy public URL" :disabled="!hasResult(b.state)"
-                    class="small-button">
+                    class="small-button center">
                     <span class="material-icons button-icon">token</span>
                   </button>
                 </div>
@@ -307,9 +307,10 @@ mark {
 }
 
 .small-button {
+  height: 1.3rem;
   margin: 0.2rem;
   padding: 0 0.04rem;
-  font-size: 0;
+  font-size: 0.9rem;
 }
 
 .button-icon {
