@@ -9,6 +9,18 @@ class Server(Entity):
     def set_status(self, value):
         return self._update('status', value)
 
+    def is_offline(self):
+        with db.cursor() as cursor:
+            cursor.execute(
+                "SELECT asked_server.status='OFFLINE' OR"
+                "       TIMESTAMPDIFF(SECOND, asked_server.heartbeat, NOW()) >"
+                "       required_setting.value"
+                " FROM servers AS asked_server, settings AS required_setting"
+                " WHERE asked_server.id=%s AND"
+                "       required_setting.name='server_timeout'", (self.id()))
+            r = cursor.fetchone()
+            return bool(r[0]) if r is not None else False
+
     def update_heartbeat(self):
         with db.cursor() as cursor:
             cursor.execute(

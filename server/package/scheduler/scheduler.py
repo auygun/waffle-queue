@@ -34,7 +34,7 @@ class Scheduler:
         # Cancel tasks for aborted requests.
         for request_data in self._requests.copy().values():
             state = request_data.request.state()
-            if state is None or state == 'ABORTED':
+            if state == 'ABORTED':
                 await request_data.task.cancel()
 
         # Check for new requests.
