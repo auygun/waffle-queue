@@ -20,12 +20,14 @@ class Project(Entity):
                            (self.id()))
             return [BuildConfig(*row) for row in cursor]
 
-    def jsonify(self):
-        return {
-            "id": self.id(),
-            "name": self.name(),
-            "remote_url": self.remote_url(),
-        }
+    @staticmethod
+    def _jsonify(row):
+        keys = [
+            "id",
+            "name",
+            "remote_url"
+        ]
+        return dict(zip(keys, row))
 
     @staticmethod
     def create(name, remote_url):
@@ -37,23 +39,16 @@ class Project(Entity):
             return Project(*cursor.fetchone())
 
     @staticmethod
-    def count():
-        with db.cursor() as cursor:
-            cursor.execute("SELECT COUNT(*) FROM projects")
-            return cursor.fetchone()[0]
-
-    @staticmethod
     def list(jsonify=False):
-        with db.cursor() as cursor:
-            cursor.execute("SELECT id FROM projects ORDER BY id DESC")
-            if jsonify:
-                return [Project(*row).jsonify() for row in cursor]
-            return [Project(*row) for row in cursor]
+        if jsonify:
+            with db.cursor() as cursor:
+                cursor.execute("SELECT id, name, remote_url"
+                               " FROM projects ORDER BY id")
+                return [Project._jsonify(row) for row in cursor]
 
-    @staticmethod
-    def clear():
         with db.cursor() as cursor:
-            cursor.execute("DELETE FROM projects")
+            cursor.execute("SELECT id FROM projects ORDER BY id")
+            return [Project(*row) for row in cursor]
 
     def _fetch(self, field):
         with db.cursor() as cursor:

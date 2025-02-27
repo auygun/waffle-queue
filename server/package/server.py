@@ -3,11 +3,11 @@ from .entity import Entity
 
 
 class Server(Entity):
-    def status(self):
-        return self._fetch('status')
+    def is_idle(self):
+        return self._fetch('status') == 'IDLE'
 
-    def set_status(self, value):
-        return self._update('status', value)
+    def is_busy(self):
+        return self._fetch('status') == 'BUSY'
 
     def is_offline(self):
         with db.cursor() as cursor:
@@ -21,16 +21,27 @@ class Server(Entity):
             r = cursor.fetchone()
             return bool(r[0]) if r is not None else False
 
+    def set_idle(self):
+        return self._update('status', 'IDLE')
+
+    def set_busy(self):
+        return self._update('status', 'BUSY')
+
+    def set_offline(self):
+        return self._update('status', 'OFFLINE')
+
     def update_heartbeat(self):
         with db.cursor() as cursor:
             cursor.execute(
                 "UPDATE servers SET heartbeat=NOW() WHERE id=%s", (self.id()))
 
-    def jsonify(self):
-        return {
-            "id": self.id(),
-            "status": self.status()
-        }
+    @staticmethod
+    def _jsonify(row):
+        keys = [
+            "id",
+            "status"
+        ]
+        return dict(zip(keys, row))
 
     @staticmethod
     def create(server_id):
@@ -42,23 +53,15 @@ class Server(Entity):
             return Server(*cursor.fetchone())
 
     @staticmethod
-    def count():
-        with db.cursor() as cursor:
-            cursor.execute("SELECT COUNT(*) FROM servers")
-            return cursor.fetchone()[0]
-
-    @staticmethod
     def list(jsonify=False):
+        if jsonify:
+            with db.cursor() as cursor:
+                cursor.execute("SELECT id, status FROM projects ORDER BY id")
+                return [Server._jsonify(row) for row in cursor]
+
         with db.cursor() as cursor:
             cursor.execute("SELECT id FROM servers ORDER BY id DESC")
-            if jsonify:
-                return [Server(*row).jsonify() for row in cursor]
             return [Server(*row) for row in cursor]
-
-    @staticmethod
-    def clear():
-        with db.cursor() as cursor:
-            cursor.execute("DELETE FROM servers")
 
     def _fetch(self, field):
         with db.cursor() as cursor:

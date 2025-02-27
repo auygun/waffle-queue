@@ -70,7 +70,6 @@ def get_requests():
 @bp.route('/builds/<request_id>', methods=['GET'])
 def get_builds(request_id):
     return {
-        "count": Build.count(request_id),
         "request_id": request_id,
         'content': Build.list(request_id, jsonify=True),
     }
@@ -99,12 +98,6 @@ def new_request():
 @bp.route("/abort/<request_id>", methods=["POST"])
 def abort_request(request_id):
     Request(request_id).abort()
-    return {}
-
-
-@bp.route("/dev/clear", methods=["POST"])
-def clear():
-    Build.clear()
     return {}
 
 

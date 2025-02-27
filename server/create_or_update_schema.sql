@@ -6,7 +6,7 @@ CREATE TABLE IF NOT EXISTS settings (
 );
 
 INSERT IGNORE settings (name, value)
-  VALUE ("log_level", "TRACE"), ("server_timeout", "30");
+  VALUE ("log_level", "TRACE"), ("server_timeout", "10");
 
 CREATE TABLE IF NOT EXISTS log_level (
   severity VARCHAR(5) PRIMARY KEY,

@@ -44,7 +44,7 @@ class Worker:
     async def shutdown(self):
         await self._current_build_task.cancel()
         if self._server is not None:
-            self._server.set_status('OFFLINE')
+            self._server.set_offline()
         db.commit()
 
     async def update(self):
@@ -54,8 +54,7 @@ class Worker:
         # Cancel task if the current build request was aborted.
         if (self._current_build is not None and
                 self._current_build_task.running()):
-            state = self._current_build.state()
-            if state is None or state == 'ABORTED':
+            if self._current_build.is_aborted():
                 await self._current_build_task.cancel()
 
         # Check for new requests if this worker is idle.
@@ -74,7 +73,7 @@ class Worker:
                           f"branch: {self._current_build.source_branch()}")
 
         try:
-            self._server.set_status('BUSY')
+            self._server.set_busy()
             db.commit()
         except (OperationalError, InterfaceError):
             # Can happen when task gets canceled due to disconnection
@@ -125,10 +124,10 @@ class Worker:
             if result == 'CANCELED':
                 self._current_build.abort()
             elif result == 0:
-                self._current_build.set_state('SUCCEEDED')
+                self._current_build.set_succeeded()
             else:
-                self._current_build.set_state('FAILED')
-            self._server.set_status('IDLE')
+                self._current_build.set_failed()
+            self._server.set_idle()
             db.commit()
         except (OperationalError, InterfaceError):
             # Can happen when task gets canceled due to disconnection

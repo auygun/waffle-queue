@@ -24,12 +24,8 @@ class Build(Entity):
     def work_dir(self):
         return self._fetch('work_dir')
 
-    def state(self):
-        return self._fetch('state')
-
-    def is_open(self):
-        state = self._fetch('state')
-        return state in {'BUILDING', 'REQUESTED'}
+    def is_requested(self):
+        return self._fetch('state') == 'REQUESTED'
 
     def is_building(self):
         return self._fetch('state') == 'BUILDING'
@@ -37,11 +33,20 @@ class Build(Entity):
     def is_succeeded(self):
         return self._fetch('state') == 'SUCCEEDED'
 
-    def set_state(self, value):
-        return self._update('state', value)
+    def is_failed(self):
+        return self._fetch('state') == 'FAILED'
 
-    def set_worker_id(self, value):
-        return self._update('worker_id', value)
+    def is_aborted(self):
+        return self._fetch('state') == 'ABORTED'
+
+    def is_open(self):
+        return self._fetch('state') in {'BUILDING', 'REQUESTED'}
+
+    def set_succeeded(self):
+        return self._update('state', 'SUCCEEDED')
+
+    def set_failed(self):
+        return self._update('state', 'FAILED')
 
     def abort(self):
         with db.cursor() as cursor:
@@ -50,17 +55,19 @@ class Build(Entity):
                            "THEN 'ABORTED' ELSE state "
                            "END WHERE id=%s", (self.id()))
 
-    def jsonify(self):
-        return {
-            "id": self.id(),
-            "request_id": self.request(),
-            "worker_id": self.worker_id(),
-            "build_config": self.build_config(),
-            "remote_url": self.remote_url(),
-            "source_branch": self.source_branch(),
-            "build_script": self.build_script(),
-            "state": self.state()
-        }
+    @staticmethod
+    def _jsonify(row):
+        keys = [
+            "id",
+            "request_id",
+            "worker_id",
+            "build_config",
+            "remote_url",
+            "source_branch",
+            "build_script",
+            "state"
+        ]
+        return dict(zip(keys, row))
 
     # pylint:disable = too-many-arguments
     @staticmethod
@@ -76,25 +83,20 @@ class Build(Entity):
             return Build(*cursor.fetchone())
 
     @staticmethod
-    def count(request):
-        with db.cursor() as cursor:
-            cursor.execute("SELECT COUNT(*) FROM builds"
-                           " WHERE request=%s", (request))
-            return cursor.fetchone()[0]
-
-    @staticmethod
     def list(request, jsonify=False):
+        if jsonify:
+            with db.cursor() as cursor:
+                cursor.execute("SELECT id, request, worker_id, build_config,"
+                               "       remote_url, source_branch, build_script,"
+                               "       state"
+                               " FROM builds WHERE request=%s"
+                               " ORDER BY id DESC", (request))
+                return [Build._jsonify(row) for row in cursor]
+
         with db.cursor() as cursor:
             cursor.execute("SELECT id FROM builds WHERE request=%s"
                            " ORDER BY id DESC", (request))
-            if jsonify:
-                return [Build(*row).jsonify() for row in cursor]
             return [Build(*row) for row in cursor]
-
-    @staticmethod
-    def clear():
-        with db.cursor() as cursor:
-            cursor.execute("DELETE FROM builds")
 
     @staticmethod
     def pop_next_build_request(worker_id):
@@ -110,8 +112,9 @@ class Build(Entity):
             build_id = cursor.fetchone()
             if build_id is not None:
                 build = Build(*build_id)
-                build.set_worker_id(worker_id)
-                build.set_state('BUILDING')
+                cursor.execute("UPDATE builds SET"
+                               " state='BUILDING', worker_id=%s"
+                               " WHERE id=%s", (worker_id, build.id()))
         db.commit()  # Release locks
         return build
 

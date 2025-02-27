@@ -15,11 +15,29 @@ class Request(Entity):
     def target_branch(self):
         return self._fetch('target_branch')
 
-    def state(self):
-        return self._fetch('state')
+    def is_requested(self):
+        return self._fetch('state') == 'REQUESTED'
 
-    def set_state(self, value):
-        return self._update('state', value)
+    def is_building(self):
+        return self._fetch('state') == 'BUILDING'
+
+    def is_succeeded(self):
+        return self._fetch('state') == 'SUCCEEDED'
+
+    def is_failed(self):
+        return self._fetch('state') == 'FAILED'
+
+    def is_aborted(self):
+        return self._fetch('state') == 'ABORTED'
+
+    def set_building(self):
+        return self._update('state', 'BUILDING')
+
+    def set_succeeded(self):
+        return self._update('state', 'SUCCEEDED')
+
+    def set_failed(self):
+        return self._update('state', 'FAILED')
 
     def abort(self):
         with db.cursor() as cursor:
@@ -28,15 +46,17 @@ class Request(Entity):
                            "THEN 'ABORTED' ELSE state "
                            "END WHERE id=%s", (self.id()))
 
-    def jsonify(self):
-        return {
-            "id": self.id(),
-            "project": self.project(),
-            "integration": self.integration(),
-            "source_branch": self.source_branch(),
-            "target_branch": self.target_branch(),
-            "state": self.state()
-        }
+    @staticmethod
+    def _jsonify(row):
+        keys = [
+            "id",
+            "project",
+            "integration",
+            "source_branch",
+            "target_branch",
+            "state"
+        ]
+        return dict(zip(keys, row))
 
     @staticmethod
     def create(project, integration, source_branch, target_branch,
@@ -59,24 +79,33 @@ class Request(Entity):
 
     @staticmethod
     def list(offset, limit, jsonify=False):
+        if jsonify:
+            with db.cursor() as cursor:
+                cursor.execute("SELECT id, project, integration, source_branch,"
+                               "       target_branch, state"
+                               " FROM requests ORDER BY id DESC"
+                               " LIMIT %s OFFSET %s", (limit, offset))
+                return [Request._jsonify(row) for row in cursor]
+
         with db.cursor() as cursor:
             cursor.execute("SELECT id FROM requests ORDER BY id DESC"
                            " LIMIT %s OFFSET %s", (limit, offset))
-            if jsonify:
-                return [Request(*row).jsonify() for row in cursor]
             return [Request(*row) for row in cursor]
 
     @staticmethod
-    def get_requests(state):
+    def get_new_requests():
+        return Request._get_requests('REQUESTED')
+
+    @staticmethod
+    def get_building_requests():
+        return Request._get_requests('BUILDING')
+
+    @staticmethod
+    def _get_requests(state):
         with db.cursor() as cursor:
             cursor.execute("SELECT id FROM requests WHERE state=%s"
                            " ORDER BY id", (state))
             return [Request(*row) for row in cursor]
-
-    @staticmethod
-    def clear():
-        with db.cursor() as cursor:
-            cursor.execute("DELETE FROM requests")
 
     def _fetch(self, field):
         with db.cursor() as cursor:

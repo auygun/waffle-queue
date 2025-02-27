@@ -33,12 +33,11 @@ class Scheduler:
 
         # Cancel tasks for aborted requests.
         for request_data in self._requests.copy().values():
-            state = request_data.request.state()
-            if state == 'ABORTED':
+            if request_data.request.is_aborted():
                 await request_data.task.cancel()
 
         # Check for new requests.
-        new_requests = Request.get_requests('REQUESTED')
+        new_requests = Request.get_new_requests()
         for request in new_requests:
             # Start processing build request right away. Integration requests
             # that are for the same branch must wait until the previous request
@@ -46,7 +45,7 @@ class Scheduler:
             key = (request.project(), request.target_branch()
                    if request.integration() else request.id())
             if key not in self._requests:
-                request.set_state('BUILDING')
+                request.set_building()
                 db.commit()
                 task = Task(
                     self._task_group, self._process_request,
@@ -58,7 +57,7 @@ class Scheduler:
         self._server = Server.create(0)
 
         # Abort orphaned requests.
-        requests = Request.get_requests('BUILDING')
+        requests = Request.get_building_requests()
         for request in requests:
             for b in Build.list(request.id()):
                 b.abort()
@@ -73,7 +72,7 @@ class Scheduler:
         for request_data in self._requests.copy().values():
             await request_data.task.cancel()
         if self._server is not None:
-            self._server.set_status('OFFLINE')
+            self._server.set_offline()
         db.commit()
 
     async def _process_request(self, request_key):
@@ -83,7 +82,7 @@ class Scheduler:
                           f"{request_data.request.id()}")
 
         try:
-            self._server.set_status('BUSY')
+            self._server.set_busy()
 
             # Create a build job for each build configuration in the project.
             # Jobs will be picked up by workers.
@@ -118,10 +117,10 @@ class Scheduler:
                     b.abort()
                 request_data.request.abort()
             elif result:
-                request_data.request.set_state('SUCCEEDED')
+                request_data.request.set_succeeded()
             else:
-                request_data.request.set_state('FAILED')
-            self._server.set_status('IDLE')
+                request_data.request.set_failed()
+            self._server.set_idle()
             db.commit()
         except (OperationalError, InterfaceError):
             # Can happen when task gets canceled due to disconnection
