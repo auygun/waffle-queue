@@ -31,15 +31,27 @@ class Request(Entity):
         return self._fetch('state') == 'ABORTED'
 
     def set_building(self):
-        return self._update('state', 'BUILDING')
+        with db.cursor() as cursor:
+            cursor.execute("UPDATE requests SET state = CASE "
+                           "WHEN (state='REQUESTED') "
+                           "THEN 'BUILDING' ELSE state "
+                           "END WHERE id=%s", (self.id()))
 
     def set_succeeded(self):
-        return self._update('state', 'SUCCEEDED')
+        with db.cursor() as cursor:
+            cursor.execute("UPDATE requests SET state = CASE "
+                           "WHEN (state='REQUESTED' OR state='BUILDING') "
+                           "THEN 'SUCCEEDED' ELSE state "
+                           "END WHERE id=%s", (self.id()))
 
     def set_failed(self):
-        return self._update('state', 'FAILED')
+        with db.cursor() as cursor:
+            cursor.execute("UPDATE requests SET state = CASE "
+                           "WHEN (state='REQUESTED' OR state='BUILDING') "
+                           "THEN 'FAILED' ELSE state "
+                           "END WHERE id=%s", (self.id()))
 
-    def abort(self):
+    def set_aborted(self):
         with db.cursor() as cursor:
             cursor.execute("UPDATE requests SET state = CASE "
                            "WHEN (state='REQUESTED' OR state='BUILDING') "
@@ -94,17 +106,15 @@ class Request(Entity):
 
     @staticmethod
     def get_new_requests():
-        return Request._get_requests('REQUESTED')
+        with db.cursor() as cursor:
+            cursor.execute("SELECT id FROM requests WHERE state='REQUESTED'"
+                           " ORDER BY id")
+            return [Request(*row) for row in cursor]
 
     @staticmethod
     def get_building_requests():
-        return Request._get_requests('BUILDING')
-
-    @staticmethod
-    def _get_requests(state):
         with db.cursor() as cursor:
-            cursor.execute("SELECT id FROM requests WHERE state=%s"
-                           " ORDER BY id", (state))
+            cursor.execute("SELECT id FROM requests WHERE state='BUILDING'")
             return [Request(*row) for row in cursor]
 
     def _fetch(self, field):
@@ -113,8 +123,3 @@ class Request(Entity):
                            (self.id()))
             r = cursor.fetchone()
             return r[0] if r is not None else None
-
-    def _update(self, field, value):
-        with db.cursor() as cursor:
-            cursor.execute(f"UPDATE requests SET {field}=%s WHERE id=%s",
-                           (value, self.id()))

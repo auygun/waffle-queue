@@ -43,12 +43,20 @@ class Build(Entity):
         return self._fetch('state') in {'BUILDING', 'REQUESTED'}
 
     def set_succeeded(self):
-        return self._update('state', 'SUCCEEDED')
+        with db.cursor() as cursor:
+            cursor.execute("UPDATE builds SET state = CASE "
+                           "WHEN (state='REQUESTED' OR state='BUILDING') "
+                           "THEN 'SUCCEEDED' ELSE state "
+                           "END WHERE id=%s", (self.id()))
 
     def set_failed(self):
-        return self._update('state', 'FAILED')
+        with db.cursor() as cursor:
+            cursor.execute("UPDATE builds SET state = CASE "
+                           "WHEN (state='REQUESTED' OR state='BUILDING') "
+                           "THEN 'FAILED' ELSE state "
+                           "END WHERE id=%s", (self.id()))
 
-    def abort(self):
+    def set_aborted(self):
         with db.cursor() as cursor:
             cursor.execute("UPDATE builds SET state = CASE "
                            "WHEN (state='REQUESTED' OR state='BUILDING') "
@@ -130,8 +138,3 @@ class Build(Entity):
                            (self.id()))
             r = cursor.fetchone()
             return r[0] if r is not None else None
-
-    def _update(self, field, value):
-        with db.cursor() as cursor:
-            cursor.execute(f"UPDATE builds SET {field}=%s WHERE id=%s",
-                           (value, self.id()))

@@ -56,8 +56,3 @@ class Project(Entity):
                            (self.id()))
             r = cursor.fetchone()
             return r[0] if r is not None else None
-
-    def _update(self, field, value):
-        with db.cursor() as cursor:
-            cursor.execute(f"UPDATE projects SET {field}=%s WHERE id=%s",
-                           (value, self.id()))

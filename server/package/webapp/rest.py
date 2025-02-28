@@ -97,7 +97,7 @@ def new_request():
 
 @bp.route("/abort/<request_id>", methods=["POST"])
 def abort_request(request_id):
-    Request(request_id).abort()
+    Request(request_id).set_aborted()
     return {}
 
 

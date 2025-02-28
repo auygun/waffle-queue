@@ -36,8 +36,8 @@ class Scheduler:
         # Abort orphaned requests.
         for request in Request.get_building_requests():
             for build in Build.list(request.id()):
-                build.abort()
-            request.abort()
+                build.set_aborted()
+            request.set_aborted()
         db.commit()
 
     async def disconnected(self):
@@ -121,8 +121,8 @@ class Scheduler:
             # Abort builds if request was canceled
             if result == 'CANCELED':
                 for build in request_traits.builds:
-                    build.abort()
-                request_traits.request.abort()
+                    build.set_aborted()
+                request_traits.request.set_aborted()
             elif result:
                 request_traits.request.set_succeeded()
             else:

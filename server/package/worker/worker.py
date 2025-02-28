@@ -72,6 +72,8 @@ class Worker:
                           f"{self._current_build.id()}, "
                           f"branch: {self._current_build.source_branch()}")
 
+        await asyncio.sleep(2)
+
         try:
             self._server.set_busy()
             db.commit()
@@ -122,7 +124,7 @@ class Worker:
                           f" result: {str(result)}")
         try:
             if result == 'CANCELED':
-                self._current_build.abort()
+                self._current_build.set_aborted()
             elif result == 0:
                 self._current_build.set_succeeded()
             else:
