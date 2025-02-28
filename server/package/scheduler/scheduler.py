@@ -1,7 +1,9 @@
 import asyncio
 from dataclasses import dataclass
+from datetime import timedelta
 from pymysql.err import OperationalError, InterfaceError
 from . import db
+from .. import settings
 from ..shutdown_handler import ShutdownHandler
 from ..task import Task
 from ..project import Project
@@ -28,10 +30,13 @@ class Scheduler:
         self._scheduled_requests: ScheduledRequests = {}
         self._server: Server = None
         self._logger = Logger(0)
+        self._clear_log_task = Task(task_group, self._clear_log)
 
     def connected(self):
         # Server id 0 is the scheduler
         self._server = Server.create(0)
+
+        self._clear_log_task.start()
 
         # Abort orphaned requests.
         for request in Request.get_building_requests():
@@ -41,10 +46,14 @@ class Scheduler:
         db.commit()
 
     async def disconnected(self):
+        await self._clear_log_task.cancel()
+
         for request_traits in self._scheduled_requests.copy().values():
             await request_traits.task.cancel()
 
     async def shutdown(self):
+        await self._clear_log_task.cancel()
+
         for request_traits in self._scheduled_requests.copy().values():
             await request_traits.task.cancel()
         if self._server is not None:
@@ -134,6 +143,13 @@ class Scheduler:
             pass
         finally:
             del self._scheduled_requests[request_key]
+
+    async def _clear_log(self):
+        while True:
+            Logger.clear()
+            db.commit()
+            days = settings.log_retention_days()
+            await asyncio.sleep(timedelta(days=days).total_seconds())
 
 
 async def _main():

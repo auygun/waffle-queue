@@ -4,14 +4,12 @@ import time
 from flask import Blueprint, Response, request, abort, send_file, stream_with_context
 import werkzeug.exceptions as ex
 from pymysql.err import OperationalError, IntegrityError
-import lazy_object_proxy
 import jwt
 from ..build import Build
 from ..request import Request
 from ..logger import Logger
 from . import db
 
-logger = lazy_object_proxy.Proxy(lambda: Logger(0))
 bp = Blueprint("rest", __name__, url_prefix="/api/v1")
 
 JWT_SECRET = "IceCreamFruitWaffle"
@@ -110,7 +108,7 @@ def get_log():
     return {
         'server_id': server_id,
         'max_severity': severity,
-        'content': logger.list(server_id, max_severity=severity)
+        'content': Logger.list(server_id, max_severity=severity)
     }
 
 

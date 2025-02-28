@@ -6,7 +6,9 @@ CREATE TABLE IF NOT EXISTS settings (
 );
 
 INSERT IGNORE settings (name, value)
-  VALUE ("log_level", "TRACE"), ("server_timeout", "10");
+  VALUE ("log_level", "TRACE"),
+        ("server_timeout", "10"),
+        ("log_retention_days", "10");
 
 CREATE TABLE IF NOT EXISTS log_level (
   severity VARCHAR(5) PRIMARY KEY,
@@ -14,7 +16,12 @@ CREATE TABLE IF NOT EXISTS log_level (
 );
 
 INSERT IGNORE log_level (severity, rank)
-  VALUE ('FATAL', 1), ('ERROR', 2), ('WARN', 3), ('INFO', 4), ('DEBUG', 5), ('TRACE', 6);
+  VALUE ('FATAL', 1),
+        ('ERROR', 2),
+        ('WARN', 3),
+        ('INFO', 4),
+        ('DEBUG', 5),
+        ('TRACE', 6);
 
 CREATE TABLE IF NOT EXISTS projects (
   id TINYINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,

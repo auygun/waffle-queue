@@ -1,6 +1,6 @@
 from contextlib import contextmanager
 
-from pymysql.err import InterfaceError
+from pymysql.err import OperationalError, InterfaceError
 from . import db
 
 
@@ -8,7 +8,20 @@ class Logger:
     def __init__(self, server_id):
         self._server_id = server_id
 
-    def list(self, server_id, max_severity='TRACE'):
+    @staticmethod
+    def clear():
+        try:
+            with db.cursor() as cursor:
+                cursor.execute("DELETE FROM logs WHERE timestamp <"
+                               " (SELECT DATE_SUB(NOW(), INTERVAL value DAY)"
+                               "  FROM settings"
+                               "  WHERE name='log_retention_days')")
+        except (OperationalError, InterfaceError):
+            # Can happen when task gets canceled due to disconnection
+            return
+
+    @staticmethod
+    def list(server_id, max_severity='TRACE'):
         with db.cursor() as cursor:
             cursor.execute("SELECT timestamp, severity, message"
                            " FROM logs WHERE severity<="
@@ -20,30 +33,8 @@ class Logger:
                 [str(row[0]) + " " + str(row[1]) + "\t" + str(row[2])
                  for row in cursor])
 
-    @contextmanager
-    def bulk_logger(self, severity):
-        def log(message):
-            if message:
-                self._log(severity, message)
-
-        def noop(_message):
-            pass
-
-        if not self.is_log_on(severity):
-            yield noop
-            return
-        try:
-            yield log
-        except InterfaceError:
-            # Can happen when task gets canceled due to disconnection
-            return
-        # pylint:disable = bare-except
-        try:
-            db.commit()
-        except:
-            pass
-
-    def is_log_on(self, severity):
+    @staticmethod
+    def is_log_on(severity):
         with db.cursor() as cursor:
             cursor.execute(
                 "SELECT asked_level.rank <= required_level.rank"
@@ -54,14 +45,37 @@ class Logger:
             r = cursor.fetchone()
             return bool(r[0]) if r is not None else False
 
+    @contextmanager
+    def bulk_logger(self, severity):
+        def log(message):
+            if message:
+                self._log(severity, message)
+
+        def noop(_message):
+            pass
+
+        if not Logger.is_log_on(severity):
+            yield noop
+            return
+        try:
+            yield log
+        except (OperationalError, InterfaceError):
+            # Can happen when task gets canceled due to disconnection
+            return
+        # pylint:disable = bare-except
+        try:
+            db.commit()
+        except:
+            pass
+
     def log(self, severity, message, commit=True):
         try:
-            if not message or not self.is_log_on(severity):
+            if not message or not Logger.is_log_on(severity):
                 return
             self._log(severity, message)
             if commit:
                 db.commit()
-        except InterfaceError:
+        except (OperationalError, InterfaceError):
             # Can happen when task gets canceled due to disconnection
             pass
 
