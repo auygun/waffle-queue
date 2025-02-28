@@ -12,121 +12,128 @@ from ..logger import Logger
 
 
 @dataclass
-class RequestData:
+class RequestTraits:
     request: Request
     task: Task
     builds: list[Build]
 
 
+# (project_id, target_branch | request_id): RequestTraits
+type ScheduledRequests = dict[(int, str | int), RequestTraits]
+
+
 class Scheduler:
     def __init__(self, task_group):
         self._task_group = task_group
-        # (project_id, target_branch or request_id): RequestData
-        self._requests = {}
-        # Server id 0 is the scheduler
-        self._server = None
+        self._scheduled_requests: ScheduledRequests = {}
+        self._server: Server = None
         self._logger = Logger(0)
+
+    def connected(self):
+        # Server id 0 is the scheduler
+        self._server = Server.create(0)
+
+        # Abort orphaned requests.
+        for request in Request.get_building_requests():
+            for build in Build.list(request.id()):
+                build.abort()
+            request.abort()
+        db.commit()
+
+    async def disconnected(self):
+        for request_traits in self._scheduled_requests.copy().values():
+            await request_traits.task.cancel()
+
+    async def shutdown(self):
+        for request_traits in self._scheduled_requests.copy().values():
+            await request_traits.task.cancel()
+        if self._server is not None:
+            self._server.set_offline()
+        db.commit()
 
     async def update(self):
         self._server.update_heartbeat()
         db.commit()
 
+        # Set builds with offline workers as failed
+        for build in Build.builds_in_progress():
+            if Server(build.worker_id()).is_offline():
+                build.set_failed()
+
         # Cancel tasks for aborted requests.
-        for request_data in self._requests.copy().values():
-            if request_data.request.is_aborted():
-                await request_data.task.cancel()
+        for request_traits in self._scheduled_requests.copy().values():
+            if request_traits.request.is_aborted():
+                await request_traits.task.cancel()
 
         # Check for new requests.
-        new_requests = Request.get_new_requests()
-        for request in new_requests:
-            # Start processing build request right away. Integration requests
+        for request in Request.get_new_requests():
+            # Start processing build requests right away. Integration requests
             # that are for the same branch must wait until the previous request
             # completes.
             key = (request.project(), request.target_branch()
                    if request.integration() else request.id())
-            if key not in self._requests:
+            if key not in self._scheduled_requests:
                 request.set_building()
                 db.commit()
                 task = Task(
                     self._task_group, self._process_request,
                     self._on_request_complete)
-                self._requests[key] = RequestData(request, task, [])
+                self._scheduled_requests[key] = RequestTraits(
+                    request, task, [])
                 task.start(key)
 
-    def connected(self):
-        self._server = Server.create(0)
-
-        # Abort orphaned requests.
-        requests = Request.get_building_requests()
-        for request in requests:
-            for b in Build.list(request.id()):
-                b.abort()
-            request.abort()
-        db.commit()
-
-    async def disconnected(self):
-        for request_data in self._requests.copy().values():
-            await request_data.task.cancel()
-
-    async def shutdown(self):
-        for request_data in self._requests.copy().values():
-            await request_data.task.cancel()
-        if self._server is not None:
-            self._server.set_offline()
-        db.commit()
-
     async def _process_request(self, request_key):
-        request_data = self._requests[request_key]
-        print("Processing request: " f"{request_data.request.id()}")
+        request_traits = self._scheduled_requests[request_key]
+        print("Processing request: " f"{request_traits.request.id()}")
         self._logger.info("Processing request! id: "
-                          f"{request_data.request.id()}")
+                          f"{request_traits.request.id()}")
 
         try:
             self._server.set_busy()
 
             # Create a build job for each build configuration in the project.
             # Jobs will be picked up by workers.
-            project = Project(request_data.request.project())
-            for bc in project.build_configs():
-                b = Build.create(request_data.request.id(), bc.name,
-                                 project.remote_url(),
-                                 request_data.request.source_branch(),
-                                 bc.build_script, bc.work_dir)
-                request_data.builds.append(b)
+            project = Project(request_traits.request.project())
+            for config in project.build_configs():
+                build = Build.create(request_traits.request.id(), config.name,
+                                     project.remote_url(),
+                                     request_traits.request.source_branch(),
+                                     config.build_script, config.work_dir)
+                request_traits.builds.append(build)
             db.commit()
 
             # Wait for workers to build all configurations.
-            while any(b.is_open() for b in request_data.builds):
+            while any(build.is_open() for build in request_traits.builds):
                 await asyncio.sleep(2)
 
-            return all(b.is_succeeded() for b in request_data.builds)
+            return all(build.is_succeeded() for build in request_traits.builds)
         except (OperationalError, InterfaceError):
             # Can happen when task gets canceled due to disconnection
             pass
 
     def _on_request_complete(self, result, request_key):
-        request_data = self._requests[request_key]
-        print(f"Request complete: {request_data.request.id()}"
+        request_traits = self._scheduled_requests[request_key]
+        print(f"Request complete: {request_traits.request.id()}"
               f" result: {str(result)}")
-        self._logger.info(f"Request complete: {request_data.request.id()}"
+        self._logger.info(f"Request complete: {request_traits.request.id()}"
                           f" result: {str(result)}")
         try:
             # Abort builds if request was canceled
             if result == 'CANCELED':
-                for b in request_data.builds:
-                    b.abort()
-                request_data.request.abort()
+                for build in request_traits.builds:
+                    build.abort()
+                request_traits.request.abort()
             elif result:
-                request_data.request.set_succeeded()
+                request_traits.request.set_succeeded()
             else:
-                request_data.request.set_failed()
+                request_traits.request.set_failed()
             self._server.set_idle()
             db.commit()
         except (OperationalError, InterfaceError):
             # Can happen when task gets canceled due to disconnection
             pass
         finally:
-            del self._requests[request_key]
+            del self._scheduled_requests[request_key]
 
 
 async def _main():

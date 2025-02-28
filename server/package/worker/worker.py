@@ -15,11 +15,11 @@ class Worker:
     def __init__(self, task_group, server_id):
         if server_id <= 0:
             raise TypeError("Server id cannot be zero or negative")
-        self._current_build = None
+        self._current_build: Build = None
         self._current_build_task = Task(
             task_group, self._start_build, self._on_build_finished)
         self._server_id = server_id
-        self._server = None
+        self._server: Server = None
         self._logger = Logger(server_id)
 
     def result_dir(self):
@@ -156,11 +156,11 @@ class Worker:
                                            logger=self._logger)
 
         submodules = []
-        for sm in output.items():
-            submodules.append([git_dir / "modules" / sm[0],
-                               work_tree / sm[0],
-                               sm[1][0],
-                               sm[1][1]])
+        for submodule_dir, submodule_info in output.items():
+            submodules.append([git_dir / "modules" / submodule_dir,
+                               work_tree / submodule_dir,
+                               submodule_info[0],
+                               submodule_info[1]])
         return submodules
 
 

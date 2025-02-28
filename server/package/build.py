@@ -99,6 +99,12 @@ class Build(Entity):
             return [Build(*row) for row in cursor]
 
     @staticmethod
+    def builds_in_progress():
+        with db.cursor() as cursor:
+            cursor.execute("SELECT id FROM builds WHERE state='BUILDING'")
+            return [Build(*row) for row in cursor]
+
+    @staticmethod
     def pop_next_build_request(worker_id):
         # Fetch the next available build request from the queue and mark it as
         # building.
