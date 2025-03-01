@@ -36,6 +36,7 @@ CREATE TABLE IF NOT EXISTS build_configs (
   name TINYTEXT NOT NULL,
   build_script TEXT NOT NULL,
   work_dir TEXT NOT NULL,
+  output_file TEXT,
   UNIQUE KEY (project, name),
   FOREIGN KEY (project) REFERENCES projects(id) ON DELETE CASCADE
 );
@@ -62,6 +63,7 @@ CREATE TABLE IF NOT EXISTS builds (
   source_branch TEXT NOT NULL,
   build_script TEXT NOT NULL,
   work_dir TEXT NOT NULL,
+  output_file TEXT,
   state ENUM ('REQUESTED', 'BUILDING', 'SUCCEEDED', 'FAILED', 'ABORTED') NOT NULL,
   INDEX (request),
   INDEX (state),
@@ -90,11 +92,10 @@ CREATE TABLE IF NOT EXISTS logs (
 INSERT IGNORE projects (name, remote_url)
   VALUE ("test-project", "/home/auygun/code/proj2/proj.git");
 
-INSERT IGNORE build_configs (project, name, build_script, work_dir)
-  VALUE ((SELECT id FROM projects WHERE name="test-project"), "Debug", "build/build.py", "");
-
-INSERT IGNORE build_configs (project, name, build_script, work_dir)
-  VALUE ((SELECT id FROM projects WHERE name="test-project"), "Release", "build/build.py", "");
+INSERT IGNORE build_configs (project, name, build_script, work_dir, output_file)
+  VALUE ((SELECT id FROM projects WHERE name="test-project"), "Debug", "build/build.py", "", "out/debug/demo"),
+        ((SELECT id FROM projects WHERE name="test-project"), "Release", "build/build.py", "", "out/release/demo"),
+        ((SELECT id FROM projects WHERE name="test-project"), "Final", "build/build.py", "", NULL);
 
 
 

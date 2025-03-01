@@ -106,7 +106,8 @@ class Scheduler:
                 build = Build.create(request_traits.request.id(), config.name,
                                      project.remote_url(), project.name(),
                                      request_traits.request.source_branch(),
-                                     config.build_script, config.work_dir)
+                                     config.build_script, config.work_dir,
+                                     config.output_file)
                 request_traits.builds.append(build)
             db.commit()
 

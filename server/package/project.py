@@ -3,7 +3,8 @@ from . import db
 from .entity import Entity
 
 
-BuildConfig = namedtuple('BuildConfig', ['name', 'build_script', 'work_dir'])
+BuildConfig = namedtuple(
+    'BuildConfig', ['name', 'build_script', 'work_dir', 'output_file'])
 
 
 class Project(Entity):
@@ -15,7 +16,7 @@ class Project(Entity):
 
     def build_configs(self):
         with db.cursor() as cursor:
-            cursor.execute("SELECT name, build_script, work_dir"
+            cursor.execute("SELECT name, build_script, work_dir, output_file"
                            " FROM build_configs WHERE project=%s",
                            (self.id()))
             return [BuildConfig(*row) for row in cursor]

@@ -1,6 +1,7 @@
 import asyncio
 from pathlib import Path
 from collections import deque
+import shutil
 from pymysql.err import OperationalError, InterfaceError
 from . import db
 from .. import runner, git, settings
@@ -118,6 +119,13 @@ class Worker:
                                  cwd=self.work_tree_root() / cwd,
                                  output=log_file_fd,
                                  logger=self._logger)
+
+            # Copy output to storage
+            output_file = self._current_build.output_file()
+            if output_file:
+                src = self.work_tree_root() / output_file
+                dst = storage_dir / Path(output_file).name
+                shutil.copyfile(src, dst)
         except runner.RunProcessError as e:
             return e.returncode
 

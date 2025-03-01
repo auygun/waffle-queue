@@ -27,6 +27,9 @@ class Build(Entity):
     def work_dir(self):
         return self._fetch('work_dir')
 
+    def output_file(self):
+        return self._fetch('output_file')
+
     def is_requested(self):
         return self._fetch('state') == 'REQUESTED'
 
@@ -83,15 +86,17 @@ class Build(Entity):
     # pylint:disable = too-many-arguments
     @staticmethod
     def create(request, build_config, remote_url, project_name, source_branch,
-               build_script, work_dir, state='REQUESTED'):
+               build_script, work_dir, output_file, state='REQUESTED'):
         with db.cursor() as cursor:
             cursor.execute("INSERT INTO builds"
                            " (request, build_config, remote_url, project_name,"
-                           " source_branch, build_script, work_dir, state)"
-                           " VALUES (%s, %s, %s, %s, %s, %s, %s, %s)"
+                           "  source_branch, build_script, work_dir,"
+                           "  output_file, state)"
+                           " VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)"
                            " RETURNING id", (request, build_config, remote_url,
                                              project_name, source_branch,
-                                             build_script, work_dir, state))
+                                             build_script, work_dir,
+                                             output_file, state))
             return Build(*cursor.fetchone())
 
     @staticmethod
