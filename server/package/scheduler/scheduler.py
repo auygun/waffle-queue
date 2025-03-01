@@ -3,7 +3,6 @@ from dataclasses import dataclass
 from datetime import timedelta
 from pymysql.err import OperationalError, InterfaceError
 from . import db
-from .. import settings
 from ..shutdown_handler import ShutdownHandler
 from ..task import Task
 from ..project import Project
@@ -148,8 +147,7 @@ class Scheduler:
         while True:
             Logger.clear()
             db.commit()
-            days = settings.log_retention_days()
-            await asyncio.sleep(timedelta(days=days).total_seconds())
+            await asyncio.sleep(timedelta(days=1).total_seconds())
 
 
 async def _main():
