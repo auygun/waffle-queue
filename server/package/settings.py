@@ -1,8 +1,12 @@
 from . import db
 
 
-def log_retention_days():
-    return int(_fetch('log_retention_days'))
+def waffle_root():
+    return _fetch('waffle_root')
+
+
+def storage_dir():
+    return _fetch('storage_dir')
 
 
 def _fetch(name):

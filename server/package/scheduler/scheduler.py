@@ -104,7 +104,7 @@ class Scheduler:
             project = Project(request_traits.request.project())
             for config in project.build_configs():
                 build = Build.create(request_traits.request.id(), config.name,
-                                     project.remote_url(),
+                                     project.remote_url(), project.name(),
                                      request_traits.request.source_branch(),
                                      config.build_script, config.work_dir)
                 request_traits.builds.append(build)

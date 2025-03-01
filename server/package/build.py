@@ -18,6 +18,9 @@ class Build(Entity):
     def source_branch(self):
         return self._fetch('source_branch')
 
+    def project_name(self):
+        return self._fetch('project_name')
+
     def build_script(self):
         return self._fetch('build_script')
 
@@ -79,15 +82,16 @@ class Build(Entity):
 
     # pylint:disable = too-many-arguments
     @staticmethod
-    def create(request, build_config, remote_url, source_branch, build_script,
-               work_dir, state='REQUESTED'):
+    def create(request, build_config, remote_url, project_name, source_branch,
+               build_script, work_dir, state='REQUESTED'):
         with db.cursor() as cursor:
             cursor.execute("INSERT INTO builds"
-                           " (request, build_config, remote_url, source_branch,"
-                           "  build_script, work_dir, state)"
-                           " VALUES (%s, %s, %s, %s, %s, %s, %s) RETURNING id",
-                           (request, build_config, remote_url, source_branch,
-                            build_script, work_dir, state))
+                           " (request, build_config, remote_url, project_name,"
+                           " source_branch, build_script, work_dir, state)"
+                           " VALUES (%s, %s, %s, %s, %s, %s, %s, %s)"
+                           " RETURNING id", (request, build_config, remote_url,
+                                             project_name, source_branch,
+                                             build_script, work_dir, state))
             return Build(*cursor.fetchone())
 
     @staticmethod

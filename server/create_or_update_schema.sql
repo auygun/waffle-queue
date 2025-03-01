@@ -8,7 +8,9 @@ CREATE TABLE IF NOT EXISTS settings (
 INSERT IGNORE settings (name, value)
   VALUE ("log_level", "TRACE"),
         ("server_timeout", "10"),
-        ("log_retention_days", "10");
+        ("log_retention_days", "10"),
+        ("waffle_root", "waffle"),
+        ("storage_dir", "storage");
 
 CREATE TABLE IF NOT EXISTS log_level (
   severity VARCHAR(5) PRIMARY KEY,
@@ -56,6 +58,7 @@ CREATE TABLE IF NOT EXISTS builds (
   worker_id TINYINT UNSIGNED,
   build_config TINYTEXT NOT NULL,
   remote_url TEXT NOT NULL,
+  project_name TINYTEXT NOT NULL,
   source_branch TEXT NOT NULL,
   build_script TEXT NOT NULL,
   work_dir TEXT NOT NULL,

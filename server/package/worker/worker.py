@@ -3,7 +3,7 @@ from pathlib import Path
 from collections import deque
 from pymysql.err import OperationalError, InterfaceError
 from . import db
-from .. import runner, git
+from .. import runner, git, settings
 from ..shutdown_handler import ShutdownHandler
 from ..task import Task
 from ..build import Build
@@ -22,11 +22,17 @@ class Worker:
         self._server: Server = None
         self._logger = Logger(server_id)
 
-    def result_dir(self):
-        return Path.home() / "waffle_worker" / "result"
+    def waffle_root(self):
+        return Path.home() / settings.waffle_root()
+
+    def storage_dir(self):
+        return self.waffle_root() / settings.storage_dir()
+
+    def worker_dir(self):
+        return self.waffle_root() / f"worker{str(self._server_id)}"
 
     def project_dir(self):
-        return Path.home() / "waffle_worker" / "proj"
+        return self.worker_dir() / self._current_build.project_name()
 
     def git_root(self):
         return self.project_dir() / "git"
@@ -101,9 +107,9 @@ class Worker:
                     modules.append(sm)
 
             # Run the build script.
-            result_dir = self.result_dir() / str(self._current_build.id())
-            result_dir.mkdir(parents=True, exist_ok=True)
-            log_file = result_dir / "build.log"
+            storage_dir = self.storage_dir() / str(self._current_build.id())
+            storage_dir.mkdir(parents=True, exist_ok=True)
+            log_file = storage_dir / "build.log"
             build_script = Path(self._current_build.build_script())
             cwd = Path(self._current_build.work_dir())
             with open(log_file, "wt", encoding="utf-8") as log_file_fd:

@@ -5,6 +5,7 @@ from flask import Blueprint, Response, request, abort, send_file, stream_with_co
 import werkzeug.exceptions as ex
 from pymysql.err import OperationalError, IntegrityError
 import jwt
+from .. import settings
 from ..build import Build
 from ..request import Request
 from ..logger import Logger
@@ -15,8 +16,8 @@ bp = Blueprint("rest", __name__, url_prefix="/api/v1")
 JWT_SECRET = "IceCreamFruitWaffle"
 
 
-def result_dir():
-    return Path.home() / "waffle_worker" / "result"
+def storage_dir():
+    return Path.home() / settings.waffle_root() / settings.storage_dir()
 
 
 @bp.errorhandler(db.CreateConnectionError)
@@ -115,7 +116,7 @@ def get_log():
 @bp.route("/result/<int:build_id>/<path:item>", methods=['GET'])
 def get_result(build_id, item):
     build = Build(build_id)
-    path = result_dir() / f"{build_id}" / item
+    path = storage_dir() / f"{build_id}" / item
 
     if not path.is_file():
         return abort(404, "No such file or directory")
@@ -161,7 +162,7 @@ def get_result(build_id, item):
 @bp.route("/public_url/<int:build_id>/<path:item>", methods=['GET'])
 def get_public_url(build_id, item):
     build = Build(build_id)
-    path = result_dir() / f"{build_id}" / item
+    path = storage_dir() / f"{build_id}" / item
 
     if build.is_building() or not path.is_file():
         return abort(404, "No such file or directory")
@@ -195,7 +196,7 @@ def public_download(token):
             leeway=2.0,
         )
         build = Build(decoded["build_id"])
-        path = result_dir() / str(decoded["build_id"]) / decoded["item"]
+        path = storage_dir() / str(decoded["build_id"]) / decoded["item"]
 
         if build.is_building() or not path.is_file():
             return abort(404, "No such file or directory")
