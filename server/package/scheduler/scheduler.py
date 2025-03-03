@@ -107,7 +107,9 @@ class Scheduler:
                                      project.remote_url(), project.name(),
                                      request_traits.request.source_branch(),
                                      config.build_script, config.work_dir,
-                                     config.output_file)
+                                     config.output_file
+                                     if not request_traits.request.integration()
+                                     and config.output_file else None)
                 request_traits.builds.append(build)
             db.commit()
 
