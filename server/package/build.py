@@ -79,6 +79,7 @@ class Build(Entity):
             "remote_url",
             "source_branch",
             "build_script",
+            "output_file",
             "state"
         ]
         return dict(zip(keys, row))
@@ -105,7 +106,7 @@ class Build(Entity):
             with db.cursor() as cursor:
                 cursor.execute("SELECT id, request, worker_id, build_config,"
                                "       remote_url, source_branch, build_script,"
-                               "       state"
+                               "       output_file, state"
                                " FROM builds WHERE request=%s"
                                " ORDER BY id DESC", (request))
                 return [Build._jsonify(row) for row in cursor]

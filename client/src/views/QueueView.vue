@@ -24,6 +24,7 @@ type Build = {
   remote_url: string
   source_branch: string
   build_script: string
+  output_file: string | null
   state: string
 }
 
@@ -152,14 +153,20 @@ async function abort(request_id: number) {
   }
 }
 
-async function showBuildLog(build_id: number) {
-  const url = `${useAxios().getBaseUrl()}/api/v1/result/${build_id}/build.log`
-  window.open(url, '_blank')?.focus()
+async function DownloadFile(build_id: number, path: string) {
+  try {
+    const file_name = path.replace(/^.*[\\/]/, '')
+    const url = `${useAxios().getBaseUrl()}/api/v1/result/${build_id}/${file_name}`
+    window.open(url, '_blank')?.focus()
+  } catch (error) {
+    emit('toastEvent', AxiosErrorToString(error as AxiosError<string>))
+  }
 }
 
-async function getPublicUrl(build_id: number) {
+async function getPublicUrl(build_id: number, path: string) {
   try {
-    const response = await useAxios().get(`/api/v1/public_url/${build_id}/build.log`)
+    const file_name = path.replace(/^.*[\\/]/, '')
+    const response = await useAxios().get(`/api/v1/public_url/${build_id}/${file_name}`)
     navigator.clipboard.writeText(response.data.url)
     emit('toastEvent', ['Public URL is copied to clipboard', `It's valid  for ${response.data.ttl} seconds`])
   } catch (error) {
@@ -273,16 +280,16 @@ const allExpanded: ComputedRef<boolean> = computed(() => {
                 <mark :style="{ 'background-color': stateColor(b.state) }">{{ b.state }}</mark><br>
                 Build {{ b.id }} / Worker {{ b.worker_id ? b.worker_id : '-' }}<br>
                 <div class="center">
-                  <button @click="router.push({ path: '/log', query: { serverId: b.worker_id } })" title="Worker log"
-                    :disabled="isRequested(b.state)" class="small-button center">
-                    <span class="material-icons button-icon">article</span>Work
+                  <button @click="DownloadFile(b.id, b.output_file!)" title="Download"
+                    :disabled="!isSucceeded(b.state) || b.output_file == null" class="small-button center">
+                    <span class="material-icons button-icon">file_download</span>Bin
                   </button>
-                  <button @click="showBuildLog(b.id)" title="Build log" :disabled="isRequested(b.state)"
+                  <button @click="DownloadFile(b.id, 'build.log')" title="Build log" :disabled="isRequested(b.state)"
                     class="small-button center">
                     <span class="material-icons button-icon">feed</span>Log
                   </button>
-                  <button @click="getPublicUrl(b.id)" title="Copy public URL" :disabled="!hasResult(b.state)"
-                    class="small-button center">
+                  <button @click="getPublicUrl(b.id, b.output_file!)" title="Copy public URL"
+                    :disabled="!isSucceeded(b.state) || b.output_file == null" class="small-button center">
                     <span class="material-icons button-icon">token</span>
                   </button>
                 </div>
