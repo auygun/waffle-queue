@@ -67,6 +67,7 @@ class Scheduler:
         for build in Build.builds_in_progress():
             if Server(build.worker_id()).is_offline():
                 build.set_failed()
+        db.commit()
 
         # Cancel tasks for aborted requests.
         for request_traits in self._scheduled_requests.copy().values():
