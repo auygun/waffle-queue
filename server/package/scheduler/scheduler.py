@@ -39,6 +39,8 @@ class Scheduler:
 
         # Abort orphaned requests.
         for request in Request.get_building_requests():
+            self._logger.info("Aborting orphaned requests! id: "
+                              f"{request.id()}", commit=False)
             for build in Build.list(request.id()):
                 build.set_aborted()
             request.set_aborted()
@@ -66,6 +68,8 @@ class Scheduler:
         # Set builds with offline workers as failed
         for build in Build.builds_in_progress():
             if Server(build.worker_id()).is_offline():
+                self._logger.info("Set build failed (offline worker)! id: "
+                                  f"{build.id()}", commit=False)
                 build.set_failed()
         db.commit()
 
@@ -95,7 +99,9 @@ class Scheduler:
         request_traits = self._scheduled_requests[request_key]
         print("Processing request: " f"{request_traits.request.id()}")
         self._logger.info("Processing request! id: "
-                          f"{request_traits.request.id()}")
+                          f"{request_traits.request.id()}, "
+                          f"branch: {request_traits.request.source_branch()}",
+                          commit=False)
 
         try:
             self._server.set_busy()
@@ -128,7 +134,7 @@ class Scheduler:
         print(f"Request complete: {request_traits.request.id()}"
               f" result: {str(result)}")
         self._logger.info(f"Request complete: {request_traits.request.id()}"
-                          f" result: {str(result)}")
+                          f" result: {str(result)}", commit=False)
         try:
             # Abort builds if request was canceled
             if result == 'CANCELED':

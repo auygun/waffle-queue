@@ -76,7 +76,8 @@ class Worker:
               f"{self._current_build.source_branch()}")
         self._logger.info("Starting build! id: "
                           f"{self._current_build.id()}, "
-                          f"branch: {self._current_build.source_branch()}")
+                          f"config: {self._current_build.build_config()}",
+                          commit=False)
 
         await asyncio.sleep(2)
 
@@ -135,7 +136,7 @@ class Worker:
         print(f"Build finished: {self._current_build.id()}"
               f" result: {str(result)}")
         self._logger.info(f"Build finished: {self._current_build.id()}"
-                          f" result: {str(result)}")
+                          f" result: {str(result)}", commit=False)
         try:
             if result == 'CANCELED':
                 self._current_build.set_aborted()
