@@ -48,6 +48,7 @@ CREATE TABLE IF NOT EXISTS requests (
   source_branch TEXT NOT NULL,
   target_branch TEXT NOT NULL,
   state ENUM ('REQUESTED', 'BUILDING', 'SUCCEEDED', 'FAILED', 'ABORTED') NOT NULL,
+  timestamp TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   INDEX (target_branch),
   INDEX (state),
   FOREIGN KEY (project) REFERENCES projects(id)
@@ -65,6 +66,9 @@ CREATE TABLE IF NOT EXISTS builds (
   work_dir TEXT NOT NULL,
   output_file TEXT,
   state ENUM ('REQUESTED', 'BUILDING', 'SUCCEEDED', 'FAILED', 'ABORTED') NOT NULL,
+  started_at TIMESTAMP NOT NULL DEFAULT 0,
+  ended_at TIMESTAMP NOT NULL DEFAULT 0,
+  duration TEXT AS (TIMESTAMPDIFF(SECOND, started_at, ended_at)),
   INDEX (request),
   INDEX (state),
   FOREIGN KEY (request) REFERENCES requests(id)

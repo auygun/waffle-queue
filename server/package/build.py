@@ -50,24 +50,42 @@ class Build(Entity):
 
     def set_succeeded(self):
         with db.cursor() as cursor:
-            cursor.execute("UPDATE builds SET state = CASE "
-                           "WHEN (state='REQUESTED' OR state='BUILDING') "
-                           "THEN 'SUCCEEDED' ELSE state "
-                           "END WHERE id=%s", (self.id()))
+            cursor.execute("UPDATE builds SET "
+                           " ended_at = CASE"
+                           "  WHEN (state='REQUESTED' OR state='BUILDING')"
+                           "  THEN NOW() ELSE ended_at"
+                           " END,"
+                           " state = CASE"
+                           "  WHEN (state='REQUESTED' OR state='BUILDING')"
+                           "  THEN 'SUCCEEDED' ELSE state"
+                           " END"
+                           " WHERE id=%s", (self.id()))
 
     def set_failed(self):
         with db.cursor() as cursor:
-            cursor.execute("UPDATE builds SET state = CASE "
-                           "WHEN (state='REQUESTED' OR state='BUILDING') "
-                           "THEN 'FAILED' ELSE state "
-                           "END WHERE id=%s", (self.id()))
+            cursor.execute("UPDATE builds SET "
+                           " ended_at = CASE"
+                           "  WHEN (state='REQUESTED' OR state='BUILDING')"
+                           "  THEN NOW() ELSE ended_at"
+                           " END,"
+                           " state = CASE"
+                           "  WHEN (state='REQUESTED' OR state='BUILDING')"
+                           "  THEN 'FAILED' ELSE state"
+                           " END"
+                           " WHERE id=%s", (self.id()))
 
     def set_aborted(self):
         with db.cursor() as cursor:
-            cursor.execute("UPDATE builds SET state = CASE "
-                           "WHEN (state='REQUESTED' OR state='BUILDING') "
-                           "THEN 'ABORTED' ELSE state "
-                           "END WHERE id=%s", (self.id()))
+            cursor.execute("UPDATE builds SET "
+                           " ended_at = CASE"
+                           "  WHEN (state='REQUESTED' OR state='BUILDING')"
+                           "  THEN NOW() ELSE ended_at"
+                           " END,"
+                           " state = CASE"
+                           "  WHEN (state='REQUESTED' OR state='BUILDING')"
+                           "  THEN 'ABORTED' ELSE state"
+                           " END"
+                           " WHERE id=%s", (self.id()))
 
     @staticmethod
     def _jsonify(row):
@@ -80,7 +98,9 @@ class Build(Entity):
             "source_branch",
             "build_script",
             "output_file",
-            "state"
+            "state",
+            "started_at",
+            "duration"
         ]
         return dict(zip(keys, row))
 
@@ -106,7 +126,10 @@ class Build(Entity):
             with db.cursor() as cursor:
                 cursor.execute("SELECT id, request, worker_id, build_config,"
                                "       remote_url, source_branch, build_script,"
-                               "       output_file, state"
+                               "       output_file, state,"
+                               "       DATE_FORMAT(started_at,"
+                               "                   '%%Y-%%m-%%d %%H:%%i'),"
+                               "       duration"
                                " FROM builds WHERE request=%s"
                                " ORDER BY id DESC", (request))
                 return [Build._jsonify(row) for row in cursor]
@@ -137,7 +160,8 @@ class Build(Entity):
             if build_id is not None:
                 build = Build(*build_id)
                 cursor.execute("UPDATE builds SET"
-                               " state='BUILDING', worker_id=%s"
+                               " state='BUILDING', worker_id=%s,"
+                               " started_at=NOW()"
                                " WHERE id=%s", (worker_id, build.id()))
         db.commit()  # Release locks
         return build

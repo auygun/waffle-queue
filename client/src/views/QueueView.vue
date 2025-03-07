@@ -26,6 +26,8 @@ type Build = {
   build_script: string
   output_file: string | null
   state: string
+  started_at: string
+  duration: number
 }
 
 type Row = {
@@ -225,6 +227,22 @@ function expandAll(expand: boolean) {
 const allExpanded: ComputedRef<boolean> = computed(() => {
   return rows.value.every((r) => { return r.expanded })
 })
+
+function duration(seconds: number) {
+  const d = Math.floor(seconds / (3600 * 24))
+  const h = Math.floor(seconds / 3600 % 24)
+  const m = Math.floor(seconds % 3600 / 60)
+  const s = Math.floor(seconds % 3600 % 60)
+  if (d > 0)
+    return `${d}D ${h}H ${m}m ${s}s`
+  else if (h > 0)
+    return `${h}H ${m}m ${s}s`
+  else if (m > 0)
+    return `${m}m ${s}s`
+  else if (s > 0)
+    return `${s}s`
+  return "-"
+}
 </script>
 
 <template>
@@ -276,10 +294,15 @@ const allExpanded: ComputedRef<boolean> = computed(() => {
           <td v-if="r.isDetail && r.expanded" colspan="5">
             <div class="details-box">
               <div v-for="(b, index) in r.builds" :key="index" class="notice build-details">
-                {{ b.build_config }}<br>
-                <mark :style="{ 'background-color': stateColor(b.state) }">{{ b.state }}</mark><br>
-                Build {{ b.id }} / Worker {{ b.worker_id ? b.worker_id : '-' }}<br>
+                <p>{{ b.build_config }}</p>
+                <p><mark :style="{ 'background-color': stateColor(b.state) }">{{ b.state }}</mark></p>
+                <p style="font-size: 0.9rem;">Build ID: {{ b.id }}</p>
+                <p style="font-size: 0.9rem;">{{ b.started_at }} / {{ duration(b.duration) }}</p>
                 <div class="center">
+                  <button @click="router.push({ path: '/log', query: { serverId: b.worker_id } })" title="Worker log"
+                    :disabled="isRequested(b.state)" class="small-button center">
+                    <span class="material-icons button-icon">work_history</span>Job
+                  </button>
                   <button @click="DownloadFile(b.id, b.output_file!)" title="Download"
                     :disabled="!isSucceeded(b.state) || b.output_file == null" class="small-button center">
                     <span class="material-icons button-icon">file_download</span>Bin
@@ -311,6 +334,11 @@ td:last-child {
 
 mark {
   font-size: 1rem;
+}
+
+p {
+  margin: 0;
+  line-height: 1.3;
 }
 
 .small-button {
